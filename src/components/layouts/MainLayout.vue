@@ -2,20 +2,25 @@
   <div class="app-layout">
     <!-- Sidebar -->
     <Sidebar />
-    <div class="flex-1 flex flex-col overflow-hidden custom-scrollbar h-screen bg-gray-100 pt-2">
+    <div class="flex-1 flex flex-col overflow-hidden h-screen bg-gray-100 pt-2">
 
     <!-- Split -->
     <template v-if="route.meta.layout === 'grid'">
       <!-- Main Content Area -->
-      <main class="flex main-content flex-1 overflow-hidden bg-gray-100 border border-gray-300 rounded-tl-lg">
+      <main class="flex main-content overflow-hidden bg-gray-100 border border-gray-300 rounded-tl-lg">
         
         <!-- Left Panel -->
-        <div class="px-6 py-4 left-panel flex-shrink-0" :style="{ width: leftPanelWidth + 'px' }">
-          <div class="pb-3">
-            <p class="text-xl text-[#444D59] font-bold">
+        <div class="left-panel py-4 flex flex-col h-full" :style="{ width: leftPanelWidth + 'px' }">
+          <!-- Title -->
+          <div class=" px-6 flex-shrink-0">
+            <p class="text-xl text-[#444D59] font-bold mb-3 ">
               {{ pageTitle }}
             </p>
-            <RouterView name="LeftSidebar" class="mt-10"/>
+          </div>
+          
+          <!-- Content dengan scroll -->
+          <div class="flex-1 scroll-container">
+            <RouterView name="LeftSidebar"/>
           </div>
         </div>
         
@@ -36,7 +41,7 @@
               >
                 <p>{{navTitle}}</p>
               </div>
-              <div class="overflow-y-auto h-full right-panel">
+              <div class="scroll-container h-full right-panel">
                 <div class="mb-12">
                   <RouterView />
                 </div>
@@ -53,7 +58,7 @@
       <main class="main-content overflow-hidden bg-white border border-gray-300 rounded-tl-lg">
         <Transition name="fade">
           <div 
-            class="px-6 py-4 full-panel overflow-y-auto h-full custom-scrollbar" 
+            class="px-6 py-4 full-panel scroll-container h-full" 
             :key="route.path"
           >
             <p class="text-xl font-medium">
@@ -69,6 +74,7 @@
 </template>
 
 <script setup>
+// Script tetap sama, tidak diubah
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from './Sidebar.vue'
@@ -115,7 +121,7 @@ function handleResize(e) {
   const newWidth = e.clientX - containerRect.left
   
   // Min dan max width constraints
-  const minWidth = 200
+  const minWidth = 280
   const maxWidth = containerRect.width * 0.5
   
   if (newWidth >= minWidth && newWidth <= maxWidth) {
@@ -206,33 +212,50 @@ onUnmounted(() => {
   user-select: none !important;
 }
 
-/* Scrollbar styling */
-.left-panel::-webkit-scrollbar,
-.right-panel::-webkit-scrollbar,
-.full-panel::-webkit-scrollbar {
+/* ========== SCROLLBAR ========== */
+.scroll-container {
+  overflow-y: auto;
+  position: relative;
+}
+
+.scroll-container::-webkit-scrollbar {
   width: 6px;
+  background: transparent;
 }
 
-.left-panel::-webkit-scrollbar-track,
-.right-panel::-webkit-scrollbar-track,
-.full-panel::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.left-panel::-webkit-scrollbar-thumb,
-.right-panel::-webkit-scrollbar-thumb,
-.full-panel::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+.scroll-container::-webkit-scrollbar-thumb {
+  background: transparent;
   border-radius: 3px;
+  transition: background 0.3s ease;
 }
 
-.left-panel::-webkit-scrollbar-thumb:hover,
-.right-panel::-webkit-scrollbar-thumb:hover,
-.full-panel::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.scroll-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6);
 }
 
-/* Slide-fade untuk right panel (split layout) */
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.8);
+}
+
+.scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scroll-container:hover {
+  scrollbar-color: rgba(224, 224, 225, 0.6) transparent;
+}
+
+.scroll-container::-webkit-scrollbar-button,
+.scroll-container::-webkit-scrollbar-corner {
+  display: none;
+}
+
+/* Slide Transition */
 .slide-fade-enter-active,
 .slide-fade-leave-active {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);

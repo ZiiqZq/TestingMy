@@ -7,10 +7,62 @@
   <link rel="stylesheet" href="/src/style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>B.Y.O.B</title>
+  <style>
+    /* Initial styles to prevent flash */
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #f8fafc;
+    }
+
+    #app {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Initial loading (replaced by Vue) */
+    .initial-loader {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+    }
+
+    .initial-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e5e7eb;
+      border-top: 3px solid #52796F;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <!-- Initial loader (replaced by Vue) -->
+    <div class="initial-loader">
+      <div class="initial-spinner"></div>
+    </div>
+  </div>
   <script type="module" src="/src/main.js"></script>
 </body>
 

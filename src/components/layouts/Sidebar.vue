@@ -6,7 +6,7 @@
     <!-- Logo -->
     <router-link 
       to="/" 
-      class="flex items-center justify-center mt-4 mb-1" 
+      class="flex items-center justify-center mt-4 mb-2" 
       title="Home"
       :class="{ 'active': $route.path === '/' }">
       <svg class="w-8 h-8 fill-current text-[#354F52]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
@@ -16,7 +16,7 @@
     </router-link>
 
     <!-- Main Navigation -->
-    <div class="flex flex-col items-center mt-2 pt-3 border-t border-gray-300 w-full">
+    <div class="flex flex-col items-center border-t pt-2 border-gray-300 w-full">
       
       <!-- Dashboard Button -->
       <router-link 

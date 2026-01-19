@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-container p-6 overflow-y-auto">
+  <div class="dashboard-container py-4 px-6">
     <!-- Cards Grid -->
     <div class="cards-grid mb-8">
       <!-- Card 1 -->

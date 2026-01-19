@@ -17,6 +17,11 @@ const routes = [
         redirect: '/'
     },
     {
+        path: '/loading',
+        name: 'Loading',
+        component: () => import('../components/AppLoading.vue')
+    },
+    {
         path: '/about',
         name: 'About',
         component: () => import('../components/About.vue'),

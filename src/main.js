@@ -1,10 +1,8 @@
-// src/main.js
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
-import router from './router'  // Import router
+import router from './router'
 
-// Gabungkan router ke aplikasi
 createApp(App)
-    .use(router)  // Tambahkan router
+    .use(router)
     .mount('#app')
