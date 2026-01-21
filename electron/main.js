@@ -1,6 +1,10 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+const db = require('./db/connection.cjs')
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -9,7 +13,6 @@ const isDev = !app.isPackaged
 let mainWindow
 
 function createWindow() {
-    // Buat loading window terlebih dahulu
     const loadingWindow = new BrowserWindow({
         width: 400,
         height: 300,
@@ -25,13 +28,13 @@ function createWindow() {
         }
     })
 
-    // Buat main window (tapi jangan langsung show)
+    // Buat main window
     mainWindow = new BrowserWindow({
         titleBarStyle: 'hiddenInset',
         autoHideMenuBar: true,
         width: 1200,
         height: 600,
-        show: false, // Jangan langsung show
+        show: false,
         backgroundColor: '#f8fafc',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -84,6 +87,12 @@ function createWindow() {
         mainWindow = null
     })
 }
+
+ipcMain.handle('db:get-users', async () => {
+    const [rows] = await db.query('SELECT * FROM users');
+    return rows;
+});
+
 
 app.whenReady().then(() => {
     createWindow()

@@ -10,8 +10,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import AppLoading from '@/components/AppLoading.vue'
-import MainLayout from './components/layouts/MainLayout.vue'
+import AppLoading from './components/AppLoading.vue'
+import MainLayout from './components/MainLayout.vue'
 
 const isAppReady = ref(false)
 

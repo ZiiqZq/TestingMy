@@ -6,11 +6,13 @@ contextBridge.exposeInMainWorld('electron', {
         chrome: () => process.versions.chrome,
         electron: () => process.versions.electron
     },
-    // Tambahkan API untuk loading
     onAppReady: (callback) => {
         ipcRenderer.on('app-ready', callback)
     },
     sendAppReady: () => {
         ipcRenderer.send('app-ready')
+    },
+    db: {
+        getUsers: () => ipcRenderer.invoke('db:get-users')
     }
 });

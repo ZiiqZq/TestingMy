@@ -1,0 +1,137 @@
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 3.75rem;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Left Panel */
+.left-panel {
+  flex-shrink: 0;
+  position: relative;
+  min-width: 200px;
+  max-width: 50%;
+  transition: width 0.1s ease;
+}
+
+/* Container untuk right panel */
+.right-panel-container {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Right Panel */
+.right-panel {
+  height: 100%;
+  width: 100%;
+}
+
+/* Resize Handle */
+.resize-handle {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  background: transparent;
+  z-index: 20;
+}
+
+/* Saat resize aktif */
+.resizing {
+  user-select: none !important;
+}
+
+.resizing * {
+  cursor: ew-resize !important;
+  user-select: none !important;
+}
+
+/* ========== SCROLLBAR ========== */
+.scroll-container {
+  overflow-y: auto;
+  position: relative;
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.scroll-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.8);
+}
+
+.scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scroll-container:hover {
+  scrollbar-color: rgba(224, 224, 225, 0.6) transparent;
+}
+
+.scroll-container::-webkit-scrollbar-button,
+.scroll-container::-webkit-scrollbar-corner {
+  display: none;
+}
+
+/* Slide Transition */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.slide-fade-enter-to,
+.slide-fade-leave-from {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Fade untuk full width layout */
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.5s ease-in-out;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.fade-enter-to,
+.fade-leave-from {
+  opacity: 1;
+}

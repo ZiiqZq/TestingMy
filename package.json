@@ -12,6 +12,7 @@
     "electron:start": "electron ."
   },
   "dependencies": {
+    "mysql2": "^3.16.1",
     "splitpanes": "^4.0.4",
     "vue": "^3.5.26",
     "vue-resizable": "^2.1.7",

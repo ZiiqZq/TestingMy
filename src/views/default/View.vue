@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-container py-4 px-2">
+  <div class="dashboard-container">
     <!-- Cards Grid -->
     <div class="cards-grid mb-8">
       <!-- Card 1 -->
