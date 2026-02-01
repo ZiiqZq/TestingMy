@@ -8,6 +8,7 @@ const routes = [
         component: () => import('../views/default/Dashboard.vue'),
         meta: {
             layout: 'full',
+            showPageTitle: true,
             showLeftSidebar: false,
             pageTitle: 'Dashboard'
         },
@@ -19,7 +20,7 @@ const routes = [
     {
         path: '/loading',
         name: 'Loading',
-        component: () => import('../components/AppLoading.vue')
+        component: () => import('../components/layouts/AppLoading.vue')
     },
     {
         path: '/about',
@@ -27,6 +28,7 @@ const routes = [
         component: () => import('../views/default/About.vue'),
         meta: {
             layout: 'grid',
+            showPageTitle: true,
             showLeftSidebar: true,
             pageTitle: 'About',
             showNavbar: false,
@@ -36,14 +38,15 @@ const routes = [
         path: '/view',
         name: 'View',
         components: {
-            default: () => import('../views/default/View.vue'),
+            default: () => import('../views/default/view.vue'),
             LeftSidebar: () => import('../views/left/LeftView.vue')
         },
         meta: {
             layout: 'grid',
+            showPageTitle: false,
             showLeftSidebar: true,
             pageTitle: 'View',
-            showNavbar: true,
+            showNavbar: false,
             navTitle: 'View Testing Data'
         }
     },
@@ -57,10 +60,27 @@ const routes = [
         },
         meta: {
             layout: 'grid',
+            showPageTitle: true,
             showLeftSidebar: true,
             pageTitle: 'Setup',
             showNavbar: true,
             navTitle: 'Informasi Test'
+        }
+    },
+    {
+        path: '/testing-table',
+        name: 'TestingTable',
+        components: {
+            default: () => import('../views/default/TestingTable.vue'),
+            LeftSidebar: () => import('../views/left/LeftTestingTable.vue')
+        },
+        meta: {
+            layout: 'grid',
+            showPageTitle: false,
+            showLeftSidebar: true,
+            pageTitle: 'Testing Table',
+            showNavbar: false,
+            navTitle: 'Testing Table'
         }
     },
 
@@ -73,6 +93,7 @@ const routes = [
         },
         meta: {
             layout: 'grid',
+            showPageTitle: true,
             showLeftSidebar: true,
             pageTitle: 'Product',
             showNavbar: true,
@@ -89,6 +110,7 @@ const routes = [
         },
         meta: {
             layout: 'grid',
+            showPageTitle: true,
             showLeftSidebar: true,
             pageTitle: 'Filter',
             showNavbar: true,
@@ -102,6 +124,7 @@ const routes = [
         component: () => import('../views/default/Generate.vue'),
         meta: {
             layout: 'full',
+            showPageTitle: true,
             showLeftSidebar: false,
             pageTitle: 'Generate'
         },

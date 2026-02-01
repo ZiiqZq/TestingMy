@@ -12,36 +12,39 @@
         <!-- panel kiri -->
         <div class="left-panel py-4 flex flex-col h-full" :style="{ width: leftPanelWidth + 'px' }">
           <!-- Title -->
-          <div class=" px-5 flex-shrink-0">
+          <div v-if="route.meta.showPageTitle === true" class=" px-7 flex-shrink-0">
             <p class="text-xl text-[#444D59] font-bold mb-3 ">
               {{ pageTitle }}
             </p>
           </div>
           
-          <div class="flex-1 scroll-container py-4 px-5">
-            <RouterView name="LeftSidebar"/>
+          <div class="flex-1 scroll-container py-4">
+            <RouterView 
+              name="LeftSidebar"
+              ref="leftPanelRef"
+            />
           </div>
         </div>
         
         <!-- panel kanan -->
-        <div class="right-panel-container mx-1 mt-1 mb-4 flex-1 relative">
+        <div class="right-panel-container  mx-1 mt-1 mb-4 flex-1 relative">
           <!-- Resize Handle -->
           <div class="resize-handle" @mousedown="startResize"></div>
           
           <Transition name="slide-fade">
             <div 
-              class="right-panel backdrop-blur-xs border border-gray-300/50 rounded-md bg-white shadow-md overflow-hidden h-full" 
+              class="right-panel backdrop-blur-xs border border-gray-300/50 rounded-3xl bg-[#FDFDFD] shadow-md overflow-hidden h-full" 
               ref="rightPanel"
               :key="route.path"
             >
               <div 
                 v-if="route.meta.showNavbar === true" 
-                class="sticky top-0 bg-white border-b border-[#ebecea] shadow-sm p-3 pl-6 font-bold text-xl text-[#444D59]"
+                class="sticky top-0 bg-white border-b border-[#ebecea] shadow-sm p-3 pl-8 font-bold text-xl text-[#444D59]"
               >
                 <p>{{navTitle}}</p>
               </div>
               <div class="scroll-container h-full right-panel">
-                <div class="mb-12 pt-4 px-6">
+                <div >
                   <RouterView />
                 </div>
               </div>
@@ -72,6 +75,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useMainLayout } from '@/composables/MainLayout.js'
 import Sidebar from './Sidebar.vue'
 
@@ -83,6 +87,8 @@ const {
   startResize,
   route
 } = useMainLayout()
+
+const leftPanelRef = ref(null)
 </script>
 
-<style src="../styles/MainLayout.css" scoped></style>
+<style src="../../styles/MainLayout.css" scoped></style>

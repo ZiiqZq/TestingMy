@@ -1,9 +1,38 @@
 // src/composables/useMainLayout.js
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 export function useMainLayout() {
     const route = useRoute()  // ✅ Pindahkan ke dalam fungsi
+
+    const handleKeyDown = (event) => {
+        // Deteksi F5, Ctrl+R, Ctrl+Shift+R
+        if (
+            (event.key === 'F5') ||
+            (event.ctrlKey && event.key === 'r') ||
+            (event.ctrlKey && event.shiftKey && event.key === 'R')
+        ) {
+            // Cek jika ada data yang belum disimpan di localStorage
+            const hasUnsavedData = localStorage.getItem('testingDataSaved') === 'true'
+
+            if (hasUnsavedData) {
+                event.preventDefault()
+
+                // Tampilkan modal konfirmasi jika di halaman TestingTable
+                if (window.location.hash.includes('testing-table')) {
+                    // Event akan ditangani oleh TestingTable.vue
+                    return false
+                }
+            }
+        }
+    }
+    onMounted(() => {
+        document.addEventListener('keydown', handleKeyDown)
+    })
+
+    onBeforeUnmount(() => {
+        document.removeEventListener('keydown', handleKeyDown)
+    })
 
     // Gunakan pageTitle dari meta (router/index.js)
     const pageTitle = computed(() =>
@@ -39,7 +68,7 @@ export function useMainLayout() {
         const containerRect = document.querySelector('.main-content').getBoundingClientRect()
         const newWidth = e.clientX - containerRect.left
 
-        const minWidth = 280
+        const minWidth = 250
         const maxWidth = containerRect.width * 0.5
 
         if (newWidth >= minWidth && newWidth <= maxWidth) {

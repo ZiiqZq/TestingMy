@@ -8,4 +8,4 @@
   </div>
 </template>
 
-<style src="../styles/AppLoading.css" scoped></style>   
+<style src="../../styles/AppLoading.css" scoped></style>   
