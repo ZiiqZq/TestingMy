@@ -469,29 +469,29 @@ const saveTableData = () => {
 }
 
 // Fungsi untuk memuat data tabel dari localStorage
-const loadTableData = () => {
-    const savedData = localStorage.getItem('testingTableData')
-    const testingDataId = testInfo?.template?.id
-    const savedTemplateId = localStorage.getItem('testingTemplateId')
+// const loadTableData = () => {
+//     const savedData = localStorage.getItem('testingTableData')
+//     const testingDataId = testInfo?.template?.id
+//     const savedTemplateId = localStorage.getItem('testingTemplateId')
     
-    // Hanya load data jika template ID sama
-    if (savedData && testingDataId && savedTemplateId === String(testingDataId)) {
-        try {
-            tableRows.value = JSON.parse(savedData)
-            hasUnsavedChanges.value = true
-            console.log('Data tabel dimuat dari localStorage:', tableRows.value.length, 'baris')
-        } catch (error) {
-            console.error('Error loading table data:', error)
-            localStorage.removeItem('testingTableData')
-            localStorage.removeItem('testingTemplateId')
-        }
-    } else if (savedData && testingDataId !== parseInt(savedTemplateId)) {
-        // Jika template berbeda, clear old data
-        console.log('Template berbeda, menghapus data lama')
-        localStorage.removeItem('testingTableData')
-        localStorage.removeItem('testingTemplateId')
-    }
-}
+//     // Hanya load data jika template ID sama
+//     if (savedData && testingDataId && savedTemplateId === String(testingDataId)) {
+//         try {
+//             tableRows.value = JSON.parse(savedData)
+//             hasUnsavedChanges.value = true
+//             console.log('Data tabel dimuat dari localStorage:', tableRows.value.length, 'baris')
+//         } catch (error) {
+//             console.error('Error loading table data:', error)
+//             localStorage.removeItem('testingTableData')
+//             localStorage.removeItem('testingTemplateId')
+//         }
+//     } else if (savedData && testingDataId !== parseInt(savedTemplateId)) {
+//         // Jika template berbeda, clear old data
+//         console.log('Template berbeda, menghapus data lama')
+//         localStorage.removeItem('testingTableData')
+//         localStorage.removeItem('testingTemplateId')
+//     }
+// }
 
 // Set current column untuk LeftTestingTable
 const setCurrentColumn = (column) => {
@@ -779,7 +779,7 @@ onMounted(() => {
     console.log('TestingTable.vue mounted dengan testInfo:', testInfo)
     
     // Coba load data yang sudah disimpan
-    loadTableData()
+    // loadTableData()
     
     // Jika tidak ada data yang disimpan, buat data baru dari template
     if (tableRows.value.length === 0 && testInfo) {

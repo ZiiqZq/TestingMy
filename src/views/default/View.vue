@@ -122,7 +122,22 @@
 </template>
 
 <script setup>
-// No special script needed for responsive layout
+  fetchdata();
+
+    async function fetchdata() {
+      try{
+        const response = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Kangboi,ID&appid=f25aff3b27787b3e73a692b19939fb46");
+          if(!response.ok){
+          throw new Error('Gagal terhubung dengan resource')
+        }
+
+        const data = await response.json();
+        console.log(data)
+      }
+      catch(error){  
+        console.error(error)
+      }
+    }
 </script>
 
 <style scoped>
