@@ -1,3 +1,4 @@
+<!-- TesttingTable.vue -->
 <template>
     <div class="flex flex-col h-full px-2 pt-2">
         <!-- Modal untuk konfirmasi perubahan yang belum disimpan -->
@@ -85,7 +86,9 @@
                     <tr v-for="(row, rowIndex) in tableRows" :key="rowIndex">
                         <td class="p-3 border-b border-r text-center disable">{{ rowIndex + 1 }}</td>
                         <td class="p-3 border-b border-r text-center font-semibold disable">
-                            {{ testInfo.serialNumber + rowIndex }}
+                            {{ testInfo.fromExcel 
+                            ? (testInfo.excelRows?.[rowIndex]?.serialNumber ?? testInfo.serialNumber) 
+                            : testInfo.serialNumber + rowIndex }}
                         </td>
                         
                         <!-- Dynamic cells berdasarkan template -->
@@ -572,6 +575,79 @@ const generateTableFromTemplate = () => {
     saveTableData()
 }
 
+onMounted(() => {
+    console.log('TestingTable.vue mounted dengan testInfo:', testInfo)
+
+    if (tableRows.value.length === 0 && testInfo) {
+        generateTableFromTemplate()
+    }
+
+    // Inject data dari Excel jika fromExcel = true
+    if (testInfo?.fromExcel && testInfo?.excelRows?.length > 0) {
+        injectExcelData(testInfo.excelRows)
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('keydown', handleKeyDown)
+})
+// ================================================================
+// FUNGSI BARU: injectExcelData
+// Tambahkan di dalam <script setup>, setelah generateTableFromTemplate()
+// ================================================================
+
+const injectExcelData = (excelRows) => {
+    excelRows.forEach((excelRow, rowIndex) => {
+        const tableRow = tableRows.value[rowIndex]
+        if (!tableRow) return
+
+        // Inject nilai ke setiap cell berdasarkan nama kolom
+        tableRow.cells.forEach(cell => {
+            // Cari nilai dari testResults menggunakan nama cell
+            // testResults sudah dalam format { col_id: value }
+            // Tapi cell pakai nama, jadi kita perlu lookup dari template
+
+            // Cara: cari templateColId yang namanya sama dengan cell.name
+            const templateCol = findTemplateColByName(cell.name)
+            if (templateCol && excelRow.testResults[templateCol.id] !== undefined) {
+                cell.value   = String(excelRow.testResults[templateCol.id])
+                validateCell(cell)
+            }
+        })
+
+        // Set remarks dari Excel
+        tableRow.remarks = excelRow.remarks || ''
+
+        // Validasi baris setelah inject
+        validateRow(rowIndex)
+    })
+
+    // Simpan
+    saveTableData()
+    console.log(`✅ ${excelRows.length} baris data dari Excel berhasil di-inject ke tabel`)
+}
+
+// Helper: cari kolom template berdasarkan nama
+const findTemplateColByName = (name) => {
+    const columns = testInfo?.template?.custom_columns?.columns || []
+
+    function walk(cols) {
+        for (const col of cols) {
+            if (col.isReference) continue
+            if (col.isSplit && col.sub?.length > 0) {
+                const found = walk(col.sub)
+                if (found) return found
+            } else {
+                if (col.name?.toLowerCase().trim() === name?.toLowerCase().trim()) {
+                    return col
+                }
+            }
+        }
+        return null
+    }
+
+    return walk(columns)
+}
+
 // Cell class berdasarkan validasi
 const getCellClass = (cell) => {
     if (cell.isValid === true) return 'bg-green-50'
@@ -647,21 +723,28 @@ const handleSubmit = async () => {
     
     try {
         // Format data untuk dikirim
-        const entries = tableRows.value.map((row, index) => ({
-            serialNumber: testInfo.serialNumber + index,
-            displaySerialNumber: `SN${testInfo.serialNumber + index}`,
-            testResults: row.cells.map((cell, cellIndex) => ({
-                name: cell.name,
-                value: cell.value,
-                isValid: cell.isValid,
-                lsl: cell.lsl,
-                usl: cell.usl,
-                expectedValue: cell.expectedValue,
-                unit: cell.unit
-            })),
-            status: row.status,
-            remarks: row.remarks || ''
-        }))
+        const entries = tableRows.value.map((row, index) => {
+    // Ambil serial number dari Excel jika fromExcel, otherwise pakai cara lama
+    const sn = testInfo.fromExcel
+        ? (testInfo.excelRows?.[index]?.serialNumber ?? testInfo.serialNumber)
+        : testInfo.serialNumber + index
+
+    return {
+        serialNumber:        sn,
+        displaySerialNumber: String(sn),
+        testResults: row.cells.map(cell => ({
+            name:          cell.name,
+            value:         cell.value,
+            isValid:       cell.isValid,
+            lsl:           cell.lsl,
+            usl:           cell.usl,
+            expectedValue: cell.expectedValue,
+            unit:          cell.unit
+        })),
+        status:  row.status,
+        remarks: row.remarks || ''
+    }
+})
         
         const submitData = {
             productId: testInfo.product.id,
@@ -774,25 +857,6 @@ const handleBeforeUnload = (event) => {
     }
 }
 
-// Initialize table
-onMounted(() => {
-    console.log('TestingTable.vue mounted dengan testInfo:', testInfo)
-    
-    // Coba load data yang sudah disimpan
-    // loadTableData()
-    
-    // Jika tidak ada data yang disimpan, buat data baru dari template
-    if (tableRows.value.length === 0 && testInfo) {
-        generateTableFromTemplate()
-    }
-    
-    // Set up beforeunload untuk mencegah close/refresh
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    
-    // Set up keyboard events
-    document.addEventListener('keydown', handleKeyDown)
-})
-
 // Cleanup
 onBeforeUnmount(() => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -865,7 +929,7 @@ onBeforeRouteLeave((to, from, next) => {
     overflow-y: auto;
     border: 1px solid #cbd5e1;
     width: 100%;
-    max-height: calc(100vh - 220px);
+    max-height: calc(100vh - 200px);
     position: relative;
     background: white;
 }
@@ -889,7 +953,7 @@ onBeforeRouteLeave((to, from, next) => {
     padding: 12px 8px;
     text-align: center;
     font-weight: 700;
-    font-size: 12px;
+    font-size: 11px;
     position: sticky;
     border: 1px solid #047857;
     border-top: 1px solid #047857;

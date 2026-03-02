@@ -1,5 +1,6 @@
+<!-- lefttestingtable.vue -->
 <template>
-    <div class="flex flex-col gap-4 h-full mx-4 py-4">
+    <div class="flex flex-col gap-4 h-full ml-4 mr-2 py-4">
         <!-- Column Info -->
         <div class="bg-white rounded-3xl shadow-md w-full hover:shadow-xl transition duration-200 ease-in-out p-4">
             <input type="checkbox" id="accordion-column" class="peer hidden" checked />
@@ -86,7 +87,9 @@
                         <div class="grid grid-cols-3 gap-1">
                             <div class="text-[#4B5563] text-xs pt-0.5">SN :</div>
                             <div class="border border-gray-300 pl-3 text-sm text-[#4B5563] rounded-lg bg-gray-100 col-span-2">
-                                {{ testInfo.serialNumber || '0' }} - {{ (testInfo.serialNumber || 0) + (testInfo.quantity || 1) - 1 }}
+                                {{ testInfo.fromExcel
+                                    ? (testInfo.excelRows?.[0]?.serialNumber ?? testInfo.serialNumber) + ' - ' + (testInfo.excelRows?.[testInfo.excelRows.length - 1]?.serialNumber ?? testInfo.serialNumber)
+                                    : (testInfo.serialNumber || '0') + ' - ' + ((testInfo.serialNumber || 0) + (testInfo.quantity || 1) - 1) }}
                             </div>
                         </div>
                         <div class="grid grid-cols-3 gap-1">

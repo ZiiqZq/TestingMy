@@ -1,4 +1,4 @@
-// electron/main.js new project
+// electron/main.js
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,6 +8,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { initializeDatabase } = require('./db/connection.cjs');
 const { registerTestingHandlers } = require('./db/handler.cjs');
+// HAPUS baris ini: const { registerExcelHandlers } = require('./db/excel-handler.cjs');
 
 // Constants
 const __filename = fileURLToPath(import.meta.url);
@@ -50,7 +51,6 @@ let isQuitting = false;
 
 /**
  * Creates the loading window
- * @returns {BrowserWindow} Loading window instance
  */
 function createLoadingWindow() {
     const window = new BrowserWindow({
@@ -58,13 +58,11 @@ function createLoadingWindow() {
         show: false,
         webPreferences: APP_CONFIG.webPreferences
     });
-
     return window;
 }
 
 /**
  * Creates the main application window
- * @returns {BrowserWindow} Main window instance
  */
 function createMainWindow() {
     const window = new BrowserWindow({
@@ -75,22 +73,17 @@ function createMainWindow() {
             preload: path.join(__dirname, 'preload.js')
         }
     });
-
     window.setMinimumSize(APP_CONFIG.mainWindow.minWidth, APP_CONFIG.mainWindow.minHeight);
     return window;
 }
 
 /**
  * Loads content into a window based on environment
- * @param {BrowserWindow} window - Window to load content into
- * @param {string} hash - URL hash for routing (optional)
- * @param {boolean} isMainWindow - Whether this is the main window
  */
 function loadWindowContent(window, hash = '', isMainWindow = false) {
     if (IS_DEVELOPMENT) {
         const url = `http://localhost:5173${hash ? `/#${hash}` : ''}`;
         window.loadURL(url);
-
         if (isMainWindow) {
             window.webContents.openDevTools();
         }
@@ -127,8 +120,8 @@ async function initializeDatabaseConnection() {
 
         if (databasePool) {
             console.log('Registering database handlers...');
-            registerTestingHandlers(databasePool);
-            console.log('App initialization complete!');
+            registerTestingHandlers(databasePool); // 🔥 Semua handler ada di sini!
+            console.log('✅ All handlers registered (DB + Excel)');
             return true;
         } else {
             console.warn('Database connection failed, but app will continue');
@@ -141,7 +134,7 @@ async function initializeDatabaseConnection() {
 }
 
 /**
- * Shows main window and closes loading window with transitions
+ * Shows main window and closes loading window
  */
 function showMainWindow() {
     mainWindow.show();
@@ -164,18 +157,13 @@ function setupWindowEventListeners() {
 
     mainWindow.webContents.once('did-finish-load', () => {
         console.log('Main window loaded');
-
         setTimeout(() => {
             showMainWindow();
         }, LOADING_DELAY_MS);
     });
 
     mainWindow.on('close', (event) => {
-        if (isQuitting) {
-            // Allow close jika sedang dalam proses quit
-            return;
-        }
-        // Prevent default close dan minta konfirmasi
+        if (isQuitting) return;
         event.preventDefault();
         mainWindow.webContents.send('app-before-quit');
     });
@@ -190,12 +178,10 @@ function setupWindowEventListeners() {
  */
 function confirmQuitApp() {
     if (mainWindow && !mainWindow.isDestroyed()) {
-        // Set flag sebelum remove listeners
         isQuitting = true;
         mainWindow.removeAllListeners('close');
         mainWindow.destroy();
     }
-    // Force quit setelah close
     app.exit(0);
 }
 
@@ -250,10 +236,10 @@ async function handleAllWindowsClosed() {
  */
 async function initializeApplication() {
     app.whenReady().then(async () => {
-        await initializeDatabaseConnection();
+        await initializeDatabaseConnection(); // 🔥 Semua handler ter-register di sini
         createApplicationWindows();
         setupIPCHandlers();
-
+        
         app.on('activate', handleAppActivate);
         app.on('window-all-closed', handleAllWindowsClosed);
     });

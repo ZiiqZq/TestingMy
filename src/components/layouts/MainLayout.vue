@@ -7,7 +7,7 @@
     <!-- Split -->
     <template v-if="route.meta.layout === 'grid'">
       <!-- Main Content Area -->
-      <main class="flex main-content overflow-hidden bg-gray-100 border border-gray-300 rounded-tl-lg">
+      <main class="flex main-content overflow-hidden bg-[#faf9f5] border border-gray-300 rounded-tl-lg">
         
         <!-- panel kiri -->
         <div class="left-panel py-4 flex flex-col h-full" :style="{ width: leftPanelWidth + 'px' }">

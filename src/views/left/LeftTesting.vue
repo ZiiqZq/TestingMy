@@ -1,36 +1,35 @@
+<!-- lefttesting.vue -->
 <template>
-
-    
-
-    <div class="space-y-4 px-4 py-6 rounded-3xl bg-white shadow-md mx-2 ">
+    <div class="space-y-4 px-4 py-4 rounded-2xl bg-white shadow-md mx-2">
         <div class="bg-blue-100 p-4 rounded-lg border-l-4 border-blue-400">
             <p>
                 <span class="font-medium text-gray-700">Setup Section</span>
                 <span class="text-sm text-gray-500"> - Pilih Produk, Device, dan Tipe Tes</span>
             </p>
         </div>
+
         <!-- Product Selection -->
         <div class="relative">
             <label for="productName" class="text-sm font-medium text-gray-700 mb-1 block">
                 Nama Produk
             </label>
-            <input 
+            <input
                 v-model="productSearchInput"
                 @focus="showProductDropdown = true"
-                @blur="showProductDropdown = false"
-                id="productName" 
+                @blur="onProductBlur"
+                @input="onProductInput"
+                id="productName"
                 type="text"
                 placeholder="Ketik nama produk..."
                 class="w-full bg-white border border-gray-200 rounded-md h-9 px-3 py-1 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
-            <!-- Product Dropdown List -->
-            <div 
+            <div
                 v-if="showProductDropdown && filteredProductNames.length > 0"
                 @click.stop
                 class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto"
             >
-                <div 
-                    v-for="name in filteredProductNames" 
+                <div
+                    v-for="name in filteredProductNames"
                     :key="name"
                     @mousedown.prevent="selectProductName(name)"
                     class="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 transition-colors"
@@ -45,23 +44,23 @@
             <label for="device" class="text-sm font-medium text-gray-700 mb-1 block">
                 Device
             </label>
-            <input 
+            <input
                 v-model="deviceSearchInput"
                 @focus="showDeviceDropdown = true"
-                @blur="showDeviceDropdown = false"
-                id="device" 
+                @blur="onDeviceBlur"
+                @input="onDeviceInput"
+                id="device"
                 type="text"
                 placeholder="Ketik nama atau nomor device..."
                 class="w-full bg-white border border-gray-200 rounded-md h-9 px-3 py-1 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
-            <!-- Device Dropdown List -->
-            <div 
+            <div
                 v-if="showDeviceDropdown && filteredDevices.length > 0"
                 @click.stop
                 class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto"
             >
-                <div 
-                    v-for="device in filteredDevices" 
+                <div
+                    v-for="device in filteredDevices"
                     :key="device.id"
                     @mousedown.prevent="selectDevice(device)"
                     class="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 transition-colors"
@@ -77,14 +76,14 @@
                 Pilih Test Type
             </label>
             <div class="grid grid-cols-1 gap-2">
-                <button 
-                    v-for="testType in testTypes" 
+                <button
+                    v-for="testType in testTypes"
                     :key="testType.id"
                     @click="selectTest(testType)"
                     :class="[
                         'w-full h-16 items-center justify-center flex border rounded-md transition-colors',
-                        selectedTestId === testType.id 
-                            ? 'bg-[#6BAF92] border-[#52796F]' 
+                        selectedTestId === testType.id
+                            ? 'bg-[#6BAF92] border-[#52796F]'
                             : 'bg-[#84D3B6] border-[#C4C4C4] hover:bg-[#6BAF92]'
                     ]"
                 >
@@ -104,8 +103,8 @@
                 Test Parameters
             </label>
             <div class="space-y-2">
-                <div 
-                    v-for="param in parameters" 
+                <div
+                    v-for="param in parameters"
                     :key="param.id"
                     class="grid grid-cols-3 items-center gap-2 text-xs"
                 >
@@ -138,104 +137,174 @@ const {
 
 // Local state
 const selectedProductName = ref('')
-const productSearchInput = ref('')
+const productSearchInput  = ref('')
 const showProductDropdown = ref(false)
-const selectedDeviceId = ref('')
-const deviceSearchInput = ref('')
-const showDeviceDropdown = ref(false)
-const selectedTestId = ref(null)
-const testTypes = ref([])
 
+const selectedDeviceId   = ref('')
+const deviceSearchInput  = ref('')
+const showDeviceDropdown = ref(false)
+
+const selectedTestId = ref(null)
+const testTypes      = ref([])
+
+// ---------------------------------------------------------------
 // Computed
-const productNames = computed(() => {
-    return [...new Set(allProducts.value.map(p => p.product_name))].sort()
-})
+// ---------------------------------------------------------------
+const productNames = computed(() =>
+    [...new Set(allProducts.value.map(p => p.product_name))].sort()
+)
 
 const filteredProductNames = computed(() => {
-    const searchText = productSearchInput.value.toLowerCase()
-    if (!searchText) return productNames.value
-    return productNames.value.filter(name => 
-        name.toLowerCase().includes(searchText)
+    const q = productSearchInput.value.toLowerCase()
+    if (!q) return productNames.value
+    return productNames.value.filter(n => n.toLowerCase().includes(q))
+})
+
+const showDeviceSelect = computed(() =>
+    selectedProductName.value && productSeries.value.length > 0
+)
+
+const filteredDevices = computed(() => {
+    const q = deviceSearchInput.value.toLowerCase()
+    if (!q) return productSeries.value
+    return productSeries.value.filter(d =>
+        formatDeviceName(d).toLowerCase().includes(q)
     )
 })
 
-const showDeviceSelect = computed(() => {
-    return selectedProductName.value && productSeries.value.length > 0
-})
+const parameters = computed(() => testParameters.value)
 
-const availableDevices = computed(() => {
-    return productSeries.value
-})
-
-const filteredDevices = computed(() => {
-    const searchText = deviceSearchInput.value.toLowerCase()
-    if (!searchText) return availableDevices.value
-    return availableDevices.value.filter(device => {
-        const formattedName = formatDeviceName(device).toLowerCase()
-        return formattedName.includes(searchText)
-    })
-})
-
-const parameters = computed(() => {
-    return testParameters.value
-})
-
-// Methods
+// ---------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------
 function formatDeviceName(device) {
-    if (device.series_number && device.series) {
-        return `${device.series} - ${device.series_number}`
-    }
+    if (device.series_number && device.series) return `${device.series} - ${device.series_number}`
     return device.series_number || device.series || 'No Series Info'
+}
+
+// ---------------------------------------------------------------
+// Reset helpers
+// ---------------------------------------------------------------
+function resetDevice() {
+    selectedDeviceId.value  = ''
+    deviceSearchInput.value = ''
+    selectedTestId.value    = null
+    testTypes.value         = []
+    // Reset global state device + test type + template
+    selectedProduct.value   = null
+    selectedTestType.value  = null
+    templateData.value      = null
+    testParameters.value    = []
+}
+
+function resetTestType() {
+    selectedTestId.value   = null
+    selectedTestType.value = null
+    templateData.value     = null
+    testParameters.value   = []
+}
+
+// ---------------------------------------------------------------
+// Product handlers
+// ---------------------------------------------------------------
+
+// User mengetik di input produk → kalau sudah ada produk terpilih, reset semua
+function onProductInput() {
+    if (selectedProductName.value) {
+        // User mengedit setelah pilih → invalidate
+        selectedProductName.value = ''
+        resetDevice()
+        // Reset productSeries juga
+        productSeries.value = []
+    }
+    showProductDropdown.value = true
+}
+
+function onProductBlur() {
+    setTimeout(() => {
+        showProductDropdown.value = false
+        // Kalau input tidak cocok dengan produk manapun → kosongkan
+        const match = productNames.value.find(
+            n => n.toLowerCase() === productSearchInput.value.toLowerCase()
+        )
+        if (!match) {
+            productSearchInput.value  = ''
+            selectedProductName.value = ''
+            resetDevice()
+            productSeries.value = []
+        }
+    }, 150)
 }
 
 function selectProductName(name) {
     selectedProductName.value = name
-    productSearchInput.value = name
+    productSearchInput.value  = name
     showProductDropdown.value = false
-    handleProductChange()
+    resetDevice()
+    onProductSelect(name)
+}
+
+// ---------------------------------------------------------------
+// Device handlers
+// ---------------------------------------------------------------
+
+// User mengetik di input device → kalau sudah ada device terpilih, reset
+function onDeviceInput() {
+    if (selectedDeviceId.value) {
+        selectedDeviceId.value = ''
+        resetTestType()
+        // Reset global selectedProduct juga
+        selectedProduct.value = null
+    }
+    showDeviceDropdown.value = true
+}
+
+function onDeviceBlur() {
+    setTimeout(() => {
+        showDeviceDropdown.value = false
+        // Kalau input tidak cocok dengan device manapun → kosongkan
+        const match = productSeries.value.find(
+            d => formatDeviceName(d).toLowerCase() === deviceSearchInput.value.toLowerCase()
+        )
+        if (!match) {
+            deviceSearchInput.value = ''
+            selectedDeviceId.value  = ''
+            resetTestType()
+            selectedProduct.value   = null
+        }
+    }, 150)
 }
 
 function selectDevice(device) {
-    selectedDeviceId.value = device.id
+    selectedDeviceId.value  = device.id
     deviceSearchInput.value = formatDeviceName(device)
     showDeviceDropdown.value = false
+    resetTestType()
     handleDeviceChange()
 }
 
-async function handleProductChange() {
-    deviceSearchInput.value = ''
-    selectedDeviceId.value = ''
-    selectedTestId.value = null
-    testTypes.value = []
-    
-    if (selectedProductName.value) {
-        onProductSelect(selectedProductName.value)
-    }
-}
-
 async function handleDeviceChange() {
-    selectedTestId.value = null
-    testTypes.value = []
-    
-    if (selectedDeviceId.value) {
-        const types = await onSeriesSelect(Number(selectedDeviceId.value))
-        testTypes.value = types
-    }
+    if (!selectedDeviceId.value) return
+    const types = await onSeriesSelect(Number(selectedDeviceId.value))
+    testTypes.value = types
 }
 
+// ---------------------------------------------------------------
+// Test type handler
+// ---------------------------------------------------------------
 async function selectTest(testType) {
     try {
         selectedTestId.value = testType.id
         await selectTestType(testType)
-        console.log('Test Type selected:', testType)
-        console.log('Template Data:', templateData.value)
     } catch (error) {
         alert(error.message)
         selectedTestId.value = null
     }
 }
 
-// Initialize
+// ---------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------
 onMounted(async () => {
     await loadProducts()
 })
