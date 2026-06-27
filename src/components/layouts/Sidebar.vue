@@ -1,7 +1,8 @@
 <template>
-  <div class="mt-2 fixed inset-y-0 left-0 z-10 flex flex-col items-center w-[3.75rem] h-screen overflow-y-hidden sidebar-scroll 
-              text-[#52796F] bg-gray-100 border-r border-gray-100" id="sidebar">
-
+  <div 
+    class="mt-2 fixed inset-y-0 left-0 z-10 flex flex-col items-center w-[3.75rem] h-screen overflow-y-auto overflow-x-visible sidebar-scroll text-[#52796F] bg-gray-100 border-r border-gray-100" 
+    id="sidebar"
+  >
     <!-- Logo -->
     <router-link to="/" class="flex items-center justify-center mt-4 mb-2" title="Home"
       :class="{ 'active': $route.path === '/' }">
@@ -12,10 +13,9 @@
       </svg>
     </router-link>
 
-    <!-- Main Navigation -->
+    <!-- Main Navigation (tanpa Menu) -->
     <div class="flex flex-col items-center border-t pt-2 border-gray-300 w-full">
-
-      <!-- Dashboard Button -->
+      <!-- Dashboard -->
       <router-link to="/"
         class="sidebar-btn flex items-center justify-center w-12 h-12 mt-2 rounded-lg hover:bg-[#CAD2C5] transition-colors"
         :class="{ 
@@ -29,10 +29,60 @@
         </svg>
       </router-link>
 
-      <!-- Menu Button with Dropdown -->
-      <div class="dropdown-container relative w-full">
-        <button @click="toggleMenu"
-          class="sidebar-btn menu-dropdown-btn flex items-center justify-center w-12 h-12 mt-2 rounded-lg hover:bg-[#CAD2C5] transition-colors"
+      <!-- Testing -->
+      <router-link
+        to="/testing"
+        class="sidebar-btn grid place-items-center w-12 h-12 mt-2 rounded-lg hover:bg-[#CAD2C5] transition-colors"
+        :class="{
+          'active': $route.path === '/testing',
+          'bg-[#dad7cd] text-[#2f3e46]': $route.path === '/testing'
+        }" title="Testing">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 386 386" xmlns="http://www.w3.org/2000/svg">
+          <path d="M298.666667,85.3333333 L298.666667,384 L1.42108547e-14,384 L1.42108547e-14,85.3333333 L298.666667,85.3333333 Z M256,128 L42.6666667,128 L42.6666667,341.333333 L256,341.333333 L256,128 Z M196.674799,157.339839 L229.991868,183.993494 L131.331707,307.318696 L72.0065057,259.858535 L98.660161,226.541465 L124.650667,247.36 L196.674799,157.339839 Z M384,0 L384,256 L341.333333,256 L341.333333,42.6666667 L128,42.6666667 L128,0 L384,0 Z" />
+        </svg>
+      </router-link>
+
+      <!-- View -->
+      <router-link to="/test-result"
+        class="sidebar-btn flex items-center justify-center w-12 h-12 mt-2 rounded-lg hover:bg-[#CAD2C5] transition-colors"
+        :class="{ 
+          'active': $route.path === '/test-result',
+          'bg-[#dad7cd] text-[#2f3e46]': $route.path === '/test-result'
+        }" title="View">
+        <svg class="w-6 h-6 stroke-current" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg"
+          stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3.5" stroke="currentColor" />
+          <path d="M21 12C21 12 20 4 12 4C4 4 3 12 3 12" stroke="currentColor" />
+        </svg>
+      </router-link>
+
+      <!-- Analytics -->
+      <router-link
+        v-if="canViewResults"
+        to="/analytics"
+        class="sidebar-btn grid place-items-center w-12 h-12 mt-2 rounded-lg hover:bg-[#CAD2C5] transition-colors"
+        :class="{ 
+          'active': $route.path === '/analytics',
+          'bg-[#dad7cd] text-[#2f3e46]': $route.path === '/analytics'
+        }" title="Analytics">
+        <svg class="w-6 h-6 stroke-current" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+          stroke="currentColor" stroke-width="2">
+          <path d="M3 3V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 16L12.25 10.75L15.75 14.25L21 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </router-link>
+
+    </div>
+
+    <!-- Bagian bawah: Menu, About, Account -->
+    <div class="mt-auto mb-4 flex flex-col items-center">
+      <!-- Menu Button dengan Dropdown -->
+      <div class="dropdown-container relative w-full flex justify-center" v-if="canManage">
+        <button 
+          ref="menuButtonRef"
+          @click="toggleMenu"
+          class="sidebar-btn menu-dropdown-btn flex items-center justify-center w-12 h-12 rounded-full hover:bg-[#CAD2C5] transition-colors"
           :class="{ 
             'active': isMenuActive,
             'bg-[#dad7cd] text-[#2f3e46]': isMenuActive
@@ -44,10 +94,13 @@
           </svg>
         </button>
 
-        <!-- Dropdown Menu -->
-        <div v-show="isMenuOpen" class="dropdown-menu bg-[#CAD2C5]">
-
-          <router-link to="/add-product"
+        <!-- Dropdown Menu dengan posisi fixed dinamis -->
+        <div 
+          v-show="isMenuOpen" 
+          class="dropdown-menu-fixed" 
+          :style="dropdownStyle"
+        >
+          <router-link v-if="canManage" to="/add-product"
             class="dropdown-item flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-[#f8fafc] transition-colors border-b border-gray-100"
             :class="{ 'bg-[#f1f5f9]': $route.path === '/add-product' }" @click="closeMenu">
             <svg class="w-6 h-6 mr-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -64,7 +117,7 @@
             </div>
           </router-link>
 
-          <router-link to="/generate"
+          <router-link v-if="canManage" to="/generate"
             class="dropdown-item flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-[#f8fafc] transition-colors border-b border-gray-100"
             :class="{ 'bg-[#f1f5f9]': $route.path === '/generate' }" @click="closeMenu">
             <svg class="w-6 h-6 mr-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -77,65 +130,23 @@
             </div>
           </router-link>
 
-          <router-link to="/manage"
+          <router-link v-if="canManageUsers" to="/manage-users"
             class="dropdown-item flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-[#f8fafc] transition-colors border-b border-gray-100"
             :class="{ 'bg-[#f1f5f9]': $route.path === '/manage' }" @click="closeMenu">
-            <svg class="w-6 h-6 mr-4" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg"
-              xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000">
-              <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-              <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-              <g id="SVGRepo_iconCarrier">
-                <title>product-management</title>
-                <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g id="icon" fill="#84A98C" transform="translate(42.666667, 34.346667)">
-                    <path
-                      d="M426.247658,366.986259 C426.477599,368.072636 426.613335,369.17172 426.653805,370.281095 L426.666667,370.986667 L426.666667,392.32 C426.666667,415.884149 383.686003,434.986667 330.666667,434.986667 C278.177524,434.986667 235.527284,416.264289 234.679528,393.025571 L234.666667,392.32 L234.666667,370.986667 L234.679528,370.281095 C234.719905,369.174279 234.855108,368.077708 235.081684,366.992917 C240.961696,371.41162 248.119437,375.487081 256.413327,378.976167 C275.772109,387.120048 301.875889,392.32 330.666667,392.32 C360.599038,392.32 387.623237,386.691188 407.213205,377.984536 C414.535528,374.73017 420.909655,371.002541 426.247658,366.986259 Z M192,7.10542736e-15 L384,106.666667 L384.001134,185.388691 C368.274441,181.351277 350.081492,178.986667 330.666667,178.986667 C301.427978,178.986667 274.9627,184.361969 255.43909,193.039129 C228.705759,204.92061 215.096345,223.091357 213.375754,241.480019 L213.327253,242.037312 L213.449,414.75 L192,426.666667 L-2.13162821e-14,320 L-2.13162821e-14,106.666667 L192,7.10542736e-15 Z M426.247658,302.986259 C426.477599,304.072636 426.613335,305.17172 426.653805,306.281095 L426.666667,306.986667 L426.666667,328.32 C426.666667,351.884149 383.686003,370.986667 330.666667,370.986667 C278.177524,370.986667 235.527284,352.264289 234.679528,329.025571 L234.666667,328.32 L234.666667,306.986667 L234.679528,306.281095 C234.719905,305.174279 234.855108,304.077708 235.081684,302.992917 C240.961696,307.41162 248.119437,311.487081 256.413327,314.976167 C275.772109,323.120048 301.875889,328.32 330.666667,328.32 C360.599038,328.32 387.623237,322.691188 407.213205,313.984536 C414.535528,310.73017 420.909655,307.002541 426.247658,302.986259 Z M127.999,199.108 L128,343.706 L170.666667,367.410315 L170.666667,222.811016 L127.999,199.108 Z M42.6666667,151.701991 L42.6666667,296.296296 L85.333,320.001 L85.333,175.405 L42.6666667,151.701991 Z M330.666667,200.32 C383.155809,200.32 425.80605,219.042377 426.653805,242.281095 L426.666667,242.986667 L426.666667,264.32 C426.666667,287.884149 383.686003,306.986667 330.666667,306.986667 C278.177524,306.986667 235.527284,288.264289 234.679528,265.025571 L234.666667,264.32 L234.666667,242.986667 L234.808715,240.645666 C237.543198,218.170241 279.414642,200.32 330.666667,200.32 Z M275.991,94.069 L150.412,164.155 L192,187.259259 L317.866667,117.333333 L275.991,94.069 Z M192,47.4074074 L66.1333333,117.333333 L107.795,140.479 L233.373,70.393 L192,47.4074074 Z"
-                      id="Combined-Shape"> </path>
-                  </g>
-                </g>
-              </g>
+            <svg class="w-6 h-6 mr-4" fill="#84A98C" viewBox="0 -64 640 640" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M610.5 373.3c2.6-14.1 2.6-28.5 0-42.6l25.8-14.9c3-1.7 4.3-5.2 3.3-8.5-6.7-21.6-18.2-41.2-33.2-57.4-2.3-2.5-6-3.1-9-1.4l-25.8 14.9c-10.9-9.3-23.4-16.5-36.9-21.3v-29.8c0-3.4-2.4-6.4-5.7-7.1-22.3-5-45-4.8-66.2 0-3.3.7-5.7 3.7-5.7 7.1v29.8c-13.5 4.8-26 12-36.9 21.3l-25.8-14.9c-2.9-1.7-6.7-1.1-9 1.4-15 16.2-26.5 35.8-33.2 57.4-1 3.3.4 6.8 3.3 8.5l25.8 14.9c-2.6 14.1-2.6 28.5 0 42.6l-25.8 14.9c-3 1.7-4.3 5.2-3.3 8.5 6.7 21.6 18.2 41.1 33.2 57.4 2.3 2.5 6 3.1 9 1.4l25.8-14.9c10.9 9.3 23.4 16.5 36.9 21.3v29.8c0 3.4 2.4 6.4 5.7 7.1 22.3 5 45 4.8 66.2 0 3.3-.7 5.7-3.7 5.7-7.1v-29.8c13.5-4.8 26-12 36.9-21.3l25.8 14.9c2.9 1.7 6.7 1.1 9-1.4 15-16.2 26.5-35.8 33.2-57.4 1-3.3-.4-6.8-3.3-8.5l-25.8-14.9zM496 400.5c-26.8 0-48.5-21.8-48.5-48.5s21.8-48.5 48.5-48.5 48.5 21.8 48.5 48.5-21.7 48.5-48.5 48.5zM224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm201.2 226.5c-2.3-1.2-4.6-2.6-6.8-3.9l-7.9 4.6c-6 3.4-12.8 5.3-19.6 5.3-10.9 0-21.4-4.6-28.9-12.6-18.3-19.8-32.3-43.9-40.2-69.6-5.5-17.7 1.9-36.4 17.9-45.7l7.9-4.6c-.1-2.6-.1-5.2 0-7.8l-7.9-4.6c-16-9.2-23.4-28-17.9-45.7.9-2.9 2.2-5.8 3.2-8.7-3.8-.3-7.5-1.2-11.4-1.2h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c10.1 0 19.5-3.2 27.2-8.5-1.2-3.8-2-7.7-2-11.8v-9.2z" />
             </svg>
             <div class="flex flex-col items-start">
-              <span class="font-medium">Manage Product</span>
+              <span class="font-medium">Manage Users</span>
             </div>
           </router-link>
-
         </div>
       </div>
 
-      <!-- Test Button -->
-      <router-link to="/testing"
-        class="sidebar-btn flex items-center justify-center w-12 h-12 mt-2 rounded-lg hover:bg-[#CAD2C5] transition-colors"
-        :class="{ 'active': $route.path === '/testing','bg-[#dad7cd] text-[#2f3e46]': $route.path === '/testing'}"
-        title="Testing">
-        <svg class="w-6 h-6 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-          stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-        </svg>
-      </router-link>
-
-      <!-- View Button -->
-      <router-link to="/view"
-        class="sidebar-btn flex items-center justify-center w-12 h-12 mt-2 rounded-lg hover:bg-[#CAD2C5] transition-colors"
-        :class="{ 
-          'active': $route.path === '/view',
-          'bg-[#dad7cd] text-[#2f3e46]': $route.path === '/view'
-        }" title="View">
-        <svg class="w-6 h-6 stroke-current" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg"
-          stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3.5" stroke="currentColor" />
-          <path d="M21 12C21 12 20 4 12 4C4 4 3 12 3 12" stroke="currentColor" />
-        </svg>
-      </router-link>
-
-
-    </div>
-
-    <div class="mt-auto mb-4">
-      <!-- About Button -->
+      <!-- About -->
       <router-link to="/about"
-        class="sidebar-btn flex items-center justify-center w-12 h-12 mb-1 rounded-full hover:bg-[#CAD2C5] transition-colors"
+        class="sidebar-btn flex items-center justify-center w-12 h-12 mt-2 rounded-full hover:bg-[#CAD2C5] transition-colors"
         :class="{ 
           'active': $route.path === '/about',
           'bg-[#dad7cd] text-[#2f3e46]': $route.path === '/about'
@@ -149,10 +160,10 @@
 
       <!-- Account -->
       <router-link to="/account"
-        class="sidebar-btn flex items-center justify-center w-12 h-12 rounded-full hover:bg-[#CAD2C5] transition-colors"
+        class="sidebar-btn flex items-center justify-center w-12 h-12 mt-2 rounded-full hover:bg-[#CAD2C5] transition-colors"
         :class="{ 
           'bg-[#dad7cd]': $route.path === '/account'
-        }" title="My Account">
+        }" title="Account">
         <svg class="w-6 h-6 stroke-current text-[#52796F]" xmlns="http://www.w3.org/2000/svg" fill="none"
           viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -160,69 +171,109 @@
         </svg>
       </router-link>
     </div>
-
   </div>
 </template>
 
 <script setup>
-  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
   import { useRoute } from 'vue-router'
 
   const route = useRoute()
   const isMenuOpen = ref(false)
+  const menuButtonRef = ref(null)
+  const dropdownStyle = ref({
+    display: 'none'
+  })
 
-  // Computed property untuk cek apakah menu button harus aktif
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+
+  const canManage = computed(() => user.role === 'super_admin' || user.role === 'admin')
+  const canManageUsers = computed(() => user.role === 'super_admin')
+  const canViewResults = computed(() => user.role === 'super_admin' || user.role === 'admin')
+
   const isMenuActive = computed(() => {
     const menuPages = ['/add-product', '/generate', '/manage']
     return menuPages.includes(route.path)
   })
 
-  // Toggle dropdown menu
   function toggleMenu() {
     isMenuOpen.value = !isMenuOpen.value
+    if (isMenuOpen.value) {
+      nextTick(() => {
+        const rect = menuButtonRef.value?.getBoundingClientRect()
+        if (rect) {
+          dropdownStyle.value = {
+            position: 'fixed',
+            left: (rect.right + 8) + 'px',
+            top: (rect.top + rect.height / 2) + 'px',
+            transform: 'translateY(-50%)',
+            zIndex: 99999,
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            padding: '8px 0',
+            width: '240px',
+            display: 'block'
+          }
+        }
+      })
+    } else {
+      dropdownStyle.value = {
+        display: 'none'
+      }
+    }
   }
 
   function closeMenu() {
     isMenuOpen.value = false
-  }
-
-  // Close dropdown when clicking outside
-  function handleClickOutside(event) {
-    const dropdown = document.querySelector('.dropdown-container')
-    const button = document.querySelector('.menu-dropdown-btn')
-
-    if (dropdown &&
-      !dropdown.contains(event.target) &&
-      !button.contains(event.target)) {
-      isMenuOpen.value = false
+    dropdownStyle.value = {
+      display: 'none'
     }
   }
 
-  // Auto close dropdown when route changes
-  watch(() => route.path, () => {
-    isMenuOpen.value = false
-  })
+  function handleClickOutside(event) {
+    const container = document.querySelector('.dropdown-container')
+    const button = document.querySelector('.menu-dropdown-btn')
+    if (container && !container.contains(event.target) && !button?.contains(event.target)) {
+      closeMenu()
+    }
+  }
 
-  // Setup click outside listener
+  watch(() => route.path, closeMenu)
+
   onMounted(() => {
     document.addEventListener('click', handleClickOutside)
-
-    // Close dropdown with Escape key
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && isMenuOpen.value) {
-        isMenuOpen.value = false
+      if (e.key === 'Escape' && isMenuOpen.value) closeMenu()
+    })
+    // Update posisi dropdown jika window di-resize
+    window.addEventListener('resize', () => {
+      if (isMenuOpen.value) {
+        // tutup dan buka ulang agar posisi update
+        closeMenu()
+        // setelah close, kita bisa buka lagi? lebih baik tidak otomatis, biar user klik ulang
+        // alternatif: hitung ulang posisi tanpa toggle
+        const rect = menuButtonRef.value?.getBoundingClientRect()
+        if (rect) {
+          dropdownStyle.value = {
+            ...dropdownStyle.value,
+            left: (rect.right + 8) + 'px',
+            top: (rect.top + rect.height / 2) + 'px',
+          }
+        }
       }
     })
   })
 
   onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside)
-    document.removeEventListener('keydown', () => { })
+    document.removeEventListener('keydown', () => {})
+    window.removeEventListener('resize', () => {})
   })
 </script>
 
 <style scoped>
-  /* Active state styling */
   .sidebar-btn.active {
     background-color: #dad7cd !important;
     color: #2f3e46 !important;
@@ -239,13 +290,11 @@
     justify-content: center;
   }
 
-  /* Router link active class */
   .router-link-active.sidebar-btn {
     background-color: #dad7cd !important;
     color: #2f3e46 !important;
   }
 
-  /* Dropdown Styles */
   .dropdown-container {
     position: relative;
     width: 100%;
@@ -253,20 +302,8 @@
     justify-content: center;
   }
 
-  .dropdown-menu {
-    position: fixed !important;
-    left: 60px !important;
-    top: 96px !important;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    padding: 8px 0;
-    width: 240px;
-    z-index: 10000;
-    opacity: 1;
-    transform: translateY(0);
-    transition: all 0.2s ease-in-out;
+  .dropdown-menu-fixed {
+    transition: opacity 0.2s ease;
   }
 
   .dropdown-item {
@@ -286,14 +323,13 @@
     background-color: #f1f5f9;
   }
 
-  /* Active state untuk dropdown items */
   .router-link-active.dropdown-item {
     background-color: #f1f5f9 !important;
   }
 
-  /* Scrollbar */
   .sidebar-scroll {
-    overflow-x: hidden;
+    overflow-x: visible;
+    overflow-y: auto;
   }
 
   .sidebar-scroll::-webkit-scrollbar {

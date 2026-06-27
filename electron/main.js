@@ -4,20 +4,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
-// Module imports
 const require = createRequire(import.meta.url);
 const { initializeDatabase } = require('./db/connection.cjs');
 const { registerTestingHandlers } = require('./db/handler.cjs');
-// HAPUS baris ini: const { registerExcelHandlers } = require('./db/excel-handler.cjs');
 
-// Constants
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const IS_DEVELOPMENT = !app.isPackaged;
 const LOADING_DELAY_MS = 500;
 const WINDOW_CLOSE_DELAY_MS = 300;
 
-// Configuration
 const APP_CONFIG = {
     mainWindow: {
         width: 1200,
@@ -26,7 +22,8 @@ const APP_CONFIG = {
         minHeight: 600,
         backgroundColor: '#f8fafc',
         titleBarStyle: 'hiddenInset',
-        autoHideMenuBar: true
+        autoHideMenuBar: true,
+        show: false
     },
     loadingWindow: {
         width: 400,
@@ -35,7 +32,8 @@ const APP_CONFIG = {
         frame: false,
         center: true,
         resizable: false,
-        alwaysOnTop: true
+        alwaysOnTop: true,
+        show: false
     },
     webPreferences: {
         contextIsolation: true,
@@ -43,59 +41,42 @@ const APP_CONFIG = {
     }
 };
 
-// Global state
 let mainWindow = null;
 let loadingWindow = null;
 let databasePool = null;
 let isQuitting = false;
 
-/**
- * Creates the loading window
- */
 function createLoadingWindow() {
-    const window = new BrowserWindow({
+    const win = new BrowserWindow({
         ...APP_CONFIG.loadingWindow,
-        show: false,
         webPreferences: APP_CONFIG.webPreferences
     });
-    return window;
+    return win;
 }
 
-/**
- * Creates the main application window
- */
 function createMainWindow() {
-    const window = new BrowserWindow({
+    const win = new BrowserWindow({
         ...APP_CONFIG.mainWindow,
-        show: false,
         webPreferences: {
             ...APP_CONFIG.webPreferences,
             preload: path.join(__dirname, 'preload.js')
         }
     });
-    window.setMinimumSize(APP_CONFIG.mainWindow.minWidth, APP_CONFIG.mainWindow.minHeight);
-    return window;
+    win.setMinimumSize(APP_CONFIG.mainWindow.minWidth, APP_CONFIG.mainWindow.minHeight);
+    return win;
 }
 
-/**
- * Loads content into a window based on environment
- */
 function loadWindowContent(window, hash = '', isMainWindow = false) {
     if (IS_DEVELOPMENT) {
         const url = `http://localhost:5173${hash ? `/#${hash}` : ''}`;
         window.loadURL(url);
-        if (isMainWindow) {
-            window.webContents.openDevTools();
-        }
+        if (isMainWindow) window.webContents.openDevTools();
     } else {
         const indexPath = path.join(__dirname, '../dist/index.html');
         window.loadFile(indexPath, hash ? { hash: `#${hash}` } : undefined);
     }
 }
 
-/**
- * Sets up IPC handlers for app communication
- */
 function setupIPCHandlers() {
     ipcMain.on('app-quit-confirmed', async () => {
         if (isQuitting) return;
@@ -105,60 +86,34 @@ function setupIPCHandlers() {
     });
 
     ipcMain.on('app-quit-cancelled', () => {
-        console.log('User cancelled app quit');
         isQuitting = false;
     });
 }
 
-/**
- * Initializes database connection and handlers
- */
 async function initializeDatabaseConnection() {
     try {
-        console.log('Initializing database connection...');
         databasePool = await initializeDatabase();
-
         if (databasePool) {
-            console.log('Registering database handlers...');
-            registerTestingHandlers(databasePool); // 🔥 Semua handler ada di sini!
-            console.log('✅ All handlers registered (DB + Excel)');
+            registerTestingHandlers(databasePool);
             return true;
-        } else {
-            console.warn('Database connection failed, but app will continue');
-            return false;
         }
+        return false;
     } catch (error) {
-        console.error('Failed to initialize database:', error);
+        console.error('Database init failed:', error);
         return false;
     }
 }
 
-/**
- * Shows main window and closes loading window
- */
-function showMainWindow() {
-    mainWindow.show();
-
-    setTimeout(() => {
-        if (loadingWindow && !loadingWindow.isDestroyed()) {
-            loadingWindow.close();
-            loadingWindow = null;
-        }
-    }, WINDOW_CLOSE_DELAY_MS);
-}
-
-/**
- * Sets up window event listeners
- */
 function setupWindowEventListeners() {
-    loadingWindow.once('ready-to-show', () => {
-        loadingWindow.show();
-    });
+    loadingWindow.once('ready-to-show', () => loadingWindow.show());
 
     mainWindow.webContents.once('did-finish-load', () => {
-        console.log('Main window loaded');
         setTimeout(() => {
-            showMainWindow();
+            mainWindow.show();
+            if (loadingWindow && !loadingWindow.isDestroyed()) {
+                loadingWindow.close();
+                loadingWindow = null;
+            }
         }, LOADING_DELAY_MS);
     });
 
@@ -168,92 +123,49 @@ function setupWindowEventListeners() {
         mainWindow.webContents.send('app-before-quit');
     });
 
-    mainWindow.on('closed', () => {
-        mainWindow = null;
-    });
+    mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-/**
- * Handles confirmed app quit
- */
+function createApplicationWindows() {
+    loadingWindow = createLoadingWindow();
+    mainWindow = createMainWindow();
+    loadWindowContent(loadingWindow, 'loading');
+    loadWindowContent(mainWindow, '', true);
+    setupWindowEventListeners();
+}
+
 function confirmQuitApp() {
     if (mainWindow && !mainWindow.isDestroyed()) {
-        isQuitting = true;
         mainWindow.removeAllListeners('close');
         mainWindow.destroy();
     }
     app.exit(0);
 }
 
-/**
- * Creates and sets up application windows
- */
-function createApplicationWindows() {
-    loadingWindow = createLoadingWindow();
-    mainWindow = createMainWindow();
-
-    loadWindowContent(loadingWindow, 'loading');
-    loadWindowContent(mainWindow, '', true);
-
-    setupWindowEventListeners();
-}
-
-/**
- * Closes database connection pool
- */
 async function closeDatabaseConnection() {
     if (databasePool) {
-        try {
-            await databasePool.end();
-            console.log('Database connection closed');
-        } catch (error) {
-            console.error('Error closing database pool:', error);
-        }
+        await databasePool.end();
     }
 }
 
-/**
- * Handles application activation (macOS)
- */
-function handleAppActivate() {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createApplicationWindows();
-    }
-}
-
-/**
- * Handles all windows closed event
- */
-async function handleAllWindowsClosed() {
-    if (process.platform !== 'darwin') {
-        await closeDatabaseConnection();
-        app.quit();
-    }
-}
-
-/**
- * Main application initialization
- */
 async function initializeApplication() {
-    app.whenReady().then(async () => {
-        await initializeDatabaseConnection(); // 🔥 Semua handler ter-register di sini
-        createApplicationWindows();
-        setupIPCHandlers();
-        
-        app.on('activate', handleAppActivate);
-        app.on('window-all-closed', handleAllWindowsClosed);
+    await app.whenReady();
+    await initializeDatabaseConnection();
+    createApplicationWindows();
+    setupIPCHandlers();
+
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) createApplicationWindows();
+    });
+
+    app.on('window-all-closed', async () => {
+        if (process.platform !== 'darwin') {
+            await closeDatabaseConnection();
+            app.quit();
+        }
     });
 }
 
-// Start the application
-initializeApplication().catch((error) => {
-    console.error('Failed to initialize application:', error);
-    process.exit(1);
-});
+initializeApplication().catch(console.error);
 
-// Export for testing (if needed)
-export {
-    createLoadingWindow,
-    createMainWindow,
-    initializeDatabaseConnection
-};
+export { createLoadingWindow, createMainWindow, initializeDatabaseConnection };

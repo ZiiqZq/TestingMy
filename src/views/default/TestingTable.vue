@@ -117,8 +117,8 @@
                                 v-else
                                 v-model="cell.value"
                                 type="text"
-                                @input="handleNumberInput($event, rowIndex, cellIndex)"
-                                @keydown="allowOnlyNumbers"
+                                @input="handleCellInput($event, rowIndex, cellIndex)"
+                                @keydown="onKeyDown($event, rowIndex, cellIndex)"
                                 @paste="handlePaste"
                                 @focus="setCurrentColumn(cell)"
                                 class="w-full h-full text-center border-none focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1"
@@ -237,6 +237,11 @@ const showWarning = (message) => {
     warningModal.value?.show()
 }
 
+const showRefreshWarning = () => {
+    warningMessage.value = 'Tidak diperbolehkan merefresh halaman saat sedang melakukan testing!'
+    warningModal.value?.show()
+}
+
 // Fungsi untuk menampilkan success modal
 const showSuccess = (message) => {
     successMessage.value = message
@@ -245,7 +250,7 @@ const showSuccess = (message) => {
 
 // Handler untuk menutup modal
 const handleErrorClose = () => {
-    errorModal.value?.hide()
+    errorModal.value=''
 }
 
 const handleWarningClose = () => {
@@ -355,52 +360,6 @@ const getRowCells = (rowIndex) => {
     return []
 }
 
-// Fungsi untuk hanya memperbolehkan input angka
-const allowOnlyNumbers = (event) => {
-    const allowedKeys = [
-        'Backspace', 'Tab', 'Enter', 'Escape',
-        'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-        'Delete', 'Home', 'End'
-    ]
-    
-    // Jika tombol yang ditekan adalah kunci kontrol, izinkan
-    if (allowedKeys.includes(event.key)) {
-        return true
-    }
-    
-    // Izinkan titik desimal (hanya satu)
-    if (event.key === '.') {
-        const currentValue = event.target.value
-        // Cegah lebih dari satu titik desimal
-        if (currentValue.includes('.')) {
-            event.preventDefault()
-            return false
-        }
-        return true
-    }
-    
-    // Izinkan tanda minus di awal
-    if (event.key === '-') {
-        const currentValue = event.target.value
-        const cursorPosition = event.target.selectionStart
-        
-        // Hanya izinkan tanda minus di awal
-        if (cursorPosition !== 0 || currentValue.includes('-')) {
-            event.preventDefault()
-            return false
-        }
-        return true
-    }
-    
-    // Hanya izinkan karakter angka
-    if (!/^\d$/.test(event.key)) {
-        event.preventDefault()
-        return false
-    }
-    
-    return true
-}
-
 // Handle paste untuk membersihkan teks yang ditempel
 const handlePaste = (event) => {
     event.preventDefault()
@@ -421,7 +380,67 @@ const handlePaste = (event) => {
 }
 
 // Handle input untuk angka
-const handleNumberInput = (event, rowIndex, cellIndex) => {
+const handleCellInput = (event, rowIndex, cellIndex) => {
+    const row = tableRows.value[rowIndex];
+    if (!row || !row.cells[cellIndex]) return;
+    const cell = row.cells[cellIndex];
+    let rawValue = event.target.value;
+
+    if (cell.validationType === 'lsl_usl') {
+        // Filter hanya angka, titik desimal, dan tanda minus
+        let cleaned = rawValue.replace(/[^\d.-]/g, '');
+        
+        // Pastikan hanya satu titik desimal
+        const parts = cleaned.split('.');
+        if (parts.length > 2) {
+            cleaned = parts[0] + '.' + parts.slice(1).join('');
+        }
+        
+        // Pastikan hanya satu tanda minus dan di awal
+        if (cleaned.includes('-')) {
+            const hasMultipleMinus = cleaned.split('-').length > 2;
+            const minusNotAtStart = cleaned.indexOf('-') > 0;
+            if (hasMultipleMinus || minusNotAtStart) {
+                cleaned = cleaned.replace(/-/g, '');
+                if (cleaned) cleaned = '-' + cleaned;
+            }
+        }
+        cell.value = cleaned;
+    } else {
+        // text_match atau pass_fail (select tidak sampai ke sini)
+        cell.value = rawValue;
+    }
+
+    validateCell(cell);
+    validateRow(rowIndex);
+    saveTableData();
+};
+
+// Untuk filter angka saat mengetik (hanya untuk lsl_usl)
+const onKeyDown = (event, rowIndex, cellIndex) => {
+    const row = tableRows.value[rowIndex]
+    if (!row || !row.cells[cellIndex]) return
+    const cell = row.cells[cellIndex]
+    if (cell.validationType !== 'lsl_usl') return true
+
+    const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Delete', 'Home', 'End']
+    if (allowedKeys.includes(event.key)) return true
+    if (event.key === '.') {
+        const currentValue = event.target.value
+        if (currentValue.includes('.')) event.preventDefault()
+        return
+    }
+    if (event.key === '-') {
+        const currentValue = event.target.value
+        if (event.target.selectionStart !== 0 || currentValue.includes('-')) {
+            event.preventDefault()
+        }
+        return
+    }
+    if (!/^\d$/.test(event.key)) event.preventDefault()
+}
+
+/*const handleNumberInput = (event, rowIndex, cellIndex) => {
     const row = tableRows.value[rowIndex]
     if (!row || !row.cells[cellIndex]) return
     
@@ -457,7 +476,7 @@ const handleNumberInput = (event, rowIndex, cellIndex) => {
     
     // Simpan perubahan
     saveTableData()
-}
+}*/
 
 // Fungsi untuk menyimpan data tabel ke localStorage
 const saveTableData = () => {
@@ -502,11 +521,12 @@ const setCurrentColumn = (column) => {
         name: column.name || 'Kolom',
         lsl: column.lsl || '-',
         usl: column.usl || '-',
-        unit: column.unit || ''
-    }
-    
-    localStorage.setItem('currentColumn', JSON.stringify(columnInfo))
-}
+        unit: column.unit || '',
+        expectedValue: column.expectedValue || '',
+        validationType: column.validationType || 'lsl_usl'   // ← tambahkan ini
+    };
+    localStorage.setItem('currentColumn', JSON.stringify(columnInfo));
+};
 
 // Generate tabel dari template
 const generateTableFromTemplate = () => {
@@ -520,58 +540,57 @@ const generateTableFromTemplate = () => {
     const rows = []
     const columns = testInfo.template.custom_columns?.columns || []
     
-    // Filter kolom yang bukan reference
     const activeColumns = columns.filter(col => !col.isReference)
-    
-    // Process columns untuk mendapatkan semua sel
     const allCells = []
+    
     activeColumns.forEach(col => {
         if (col.isSplit && col.sub?.length > 0) {
-            // Untuk split columns, tambahkan semua sub columns
             col.sub.forEach(subCol => {
+                let cellType = 'text'
+                if (subCol.validationType === 'pass_fail') cellType = 'select'
                 allCells.push({
                     name: subCol.name,
-                    type: subCol.validationType === 'pass_fail' ? 'select' : 'text',
+                    type: cellType,
                     value: '',
                     isValid: null,
                     lsl: subCol.lsl,
                     usl: subCol.usl,
                     expectedValue: subCol.expectedValue,
-                    unit: subCol.unit
+                    unit: subCol.unit,
+                    validationType: subCol.validationType
                 })
             })
         } else {
-            // Regular column
+            let cellType = 'text'
+            if (col.validationType === 'pass_fail') cellType = 'select'
             allCells.push({
                 name: col.name,
-                type: col.validationType === 'pass_fail' ? 'select' : 'text',
+                type: cellType,
                 value: '',
-                isValid: null,
+                    isValid: null,
                 lsl: col.lsl,
                 usl: col.usl,
                 expectedValue: col.expectedValue,
-                unit: col.unit
+                unit: col.unit,
+                validationType: col.validationType
             })
         }
     })
     
-    // Buat baris sesuai jumlah quantity
     for (let i = 0; i < testInfo.quantity; i++) {
         rows.push({
-            cells: JSON.parse(JSON.stringify(allCells)), // Deep copy
+            cells: JSON.parse(JSON.stringify(allCells)),
             status: 'Fail',
             remarks: ''
         })
     }
     
     tableRows.value = rows
-    
-    // Set default column pertama
     if (rows.length > 0 && rows[0].cells.length > 0) {
         setCurrentColumn(rows[0].cells[0])
     }
     
-    console.log('Tabel dibuat dari template:', rows.length, 'baris,', allCells.length, 'kolom')
+    console.log('Tabel dibuat:', rows.length, 'baris,', allCells.length, 'kolom')
     saveTableData()
 }
 
@@ -587,8 +606,16 @@ onMounted(() => {
         injectExcelData(testInfo.excelRows)
     }
 
+    const preventRefresh = (e) => {
+        if ((e.key === 'F5') || (e.ctrlKey && e.key === 'r') || (e.ctrlKey && e.shiftKey && e.key === 'R')) {
+            e.preventDefault()
+            showRefreshWarning()
+            return false
+        }
+    }
+
     window.addEventListener('beforeunload', handleBeforeUnload)
-    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keydown', handleShortcuts)
 })
 // ================================================================
 // FUNGSI BARU: injectExcelData
@@ -604,7 +631,6 @@ const injectExcelData = (excelRows) => {
         tableRow.cells.forEach(cell => {
             // Cari nilai dari testResults menggunakan nama cell
             // testResults sudah dalam format { col_id: value }
-            // Tapi cell pakai nama, jadi kita perlu lookup dari template
 
             // Cara: cari templateColId yang namanya sama dengan cell.name
             const templateCol = findTemplateColByName(cell.name)
@@ -623,7 +649,7 @@ const injectExcelData = (excelRows) => {
 
     // Simpan
     saveTableData()
-    console.log(`✅ ${excelRows.length} baris data dari Excel berhasil di-inject ke tabel`)
+    console.log(`${excelRows.length} baris data dari Excel berhasil di-inject ke tabel`)
 }
 
 // Helper: cari kolom template berdasarkan nama
@@ -658,24 +684,29 @@ const getCellClass = (cell) => {
 // Validasi sel
 const validateCell = (cell) => {
     if (!cell.value && cell.value !== 0) {
-        cell.isValid = null
-        return
+        cell.isValid = null;
+        return;
     }
-    
     if (cell.type === 'select') {
-        cell.isValid = cell.value === cell.expectedValue
-    } else {
-        const numValue = parseFloat(cell.value)
-        if (isNaN(numValue)) {
-            cell.isValid = false
-            return
-        }
-        
-        const lsl = parseFloat(cell.lsl) || -Infinity
-        const usl = parseFloat(cell.usl) || Infinity
-        cell.isValid = numValue >= lsl && numValue <= usl
+        cell.isValid = cell.value === cell.expectedValue;
+    } 
+    else if (cell.validationType === 'text_match') {
+        // Case-insensitive comparison
+        const userValue = cell.value?.toString().toLowerCase().trim() || '';
+        const expected = cell.expectedValue?.toString().toLowerCase().trim() || '';
+        cell.isValid = userValue === expected;
     }
-}
+    else {
+        const numValue = parseFloat(cell.value);
+        if (isNaN(numValue)) {
+            cell.isValid = false;
+            return;
+        }
+        const lsl = parseFloat(cell.lsl) || -Infinity;
+        const usl = parseFloat(cell.usl) || Infinity;
+        cell.isValid = numValue >= lsl && numValue <= usl;
+    }
+};
 
 // Validasi baris
 const validateRow = (rowIndex) => {
@@ -763,13 +794,13 @@ const handleSubmit = async () => {
         
         if (result.success) {
             showSuccess('Data berhasil disimpan!')
-            
-            // Clear data yang disimpan
             setTimeout(() => {
                 clearUnsavedData()
                 clearSession()
-                router.push({ name: 'Testing' })
-            }, 1500)
+                router.push({ name: 'Testing' }).then(() => {
+                    window.location.reload()
+                })
+            }, 1500);
         } else {
             showError('Gagal menyimpan data: ' + result.message)
         }
@@ -792,15 +823,13 @@ const clearUnsavedData = () => {
 
 // Handle confirm leave
 const handleConfirmLeave = () => {
-    // Clear semua data
     clearUnsavedData()
     clearSession()
-    
     if (pendingNavigation) {
         pendingNavigation()
+        setTimeout(() => window.location.reload(), 100)
     } else {
-        // Untuk cancel button (kembali ke Testing)
-        router.push({ name: 'Testing' })
+        router.push({ name: 'Testing' }).then(() => window.location.reload())
     }
 }
 
@@ -810,33 +839,27 @@ const handleCancelLeave = () => {
 }
 
 // Handle cancel (tombol Cancel)
-const handleCancel = () => {
+function handleCancel() {
     if (hasUnsavedChanges.value) {
         showConfirmModal('Anda memiliki data yang belum disimpan. Yakin ingin membatalkan?')
     } else {
-        // Tidak ada unsaved changes, langsung clear dan navigate
         clearUnsavedData()
         clearSession()
-        router.push({ name: 'Testing' })
+        router.push({ name: 'Testing' }).then(() => {
+            window.location.reload()
+        })
     }
 }
 
-// Fungsi untuk menangani keyboard shortcuts (F5, Ctrl+R, Ctrl+Shift+R)
-const handleKeyDown = (event) => {
-    // Detect F5, Ctrl+R, Ctrl+Shift+R
-    if (
-        (event.key === 'F5') ||
-        (event.ctrlKey && event.key === 'r') ||
-        (event.ctrlKey && event.shiftKey && event.key === 'R')
-    ) {
+// Deteksi F5, Ctrl+R, Ctrl+Shift+R
+const handleShortcuts = (event) => {
+    if ((event.key === 'F5') || (event.ctrlKey && event.key === 'r') || (event.ctrlKey && event.shiftKey && event.key === 'R')) {
         if (hasUnsavedChanges.value) {
             event.preventDefault()
             showConfirmModal('Anda memiliki data yang belum disimpan. Yakin ingin me-refresh halaman?')
             return false
         }
     }
-    
-    // Detect browser back/forward buttons
     if (event.key === 'ArrowLeft' && event.altKey) {
         if (hasUnsavedChanges.value) {
             event.preventDefault()
@@ -860,7 +883,11 @@ const handleBeforeUnload = (event) => {
 // Cleanup
 onBeforeUnmount(() => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
-    document.removeEventListener('keydown', handleKeyDown)
+    document.removeEventListener('keydown', handleShortcuts) // ✅ benar
+    if (window._preventRefresh) {
+        window.removeEventListener('keydown', window._preventRefresh)
+        delete window._preventRefresh
+    }
 })
 
 // Navigation guard - mencegah pindah halaman tanpa konfirmasi

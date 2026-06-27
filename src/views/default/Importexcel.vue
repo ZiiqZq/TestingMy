@@ -52,7 +52,7 @@
     <!-- STEP 1: Belum pilih device -->
     <div v-if="!isDeviceReady" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
       <p class="text-sm text-yellow-700">
-        ! Pilih <strong>Device</strong> dan <strong>Test Type</strong> di panel kiri terlebih dahulu.
+        Pilih <strong>Device</strong> dan <strong>Test Type</strong> di panel kiri terlebih dahulu.
       </p>
     </div>
 

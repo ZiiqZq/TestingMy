@@ -4,17 +4,17 @@
         <!-- Banner peringatan kalau belum pilih device -->
         <div v-if="!isDeviceReady" class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p class="text-sm text-yellow-700">
-                ⚠ Pilih <strong>Device</strong> dan <strong>Test Type</strong> di panel kiri sebelum mengisi form.
+                Pilih <strong>Device</strong> dan <strong>Test Type</strong> di panel kiri sebelum mengisi form.
             </p>
         </div>
 
         <!-- Operator Name -->
         <div class="relative">
             <input
-                v-model="operatorName"
+                :value="operatorName"
                 placeholder=" "
-                :disabled="!isDeviceReady"
-                @input="saveFormData"
+                disabled
+                readonly
                 :class="inputClass"
             />
             <label :class="labelClass">Nama Operator *</label>
@@ -27,7 +27,6 @@
                 type="date"
                 placeholder=" "
                 :disabled="!isDeviceReady"
-                @input="saveFormData"
                 :class="inputClass"
             />
             <label :class="labelClass">Test Date *</label>
@@ -39,7 +38,6 @@
                 v-model="oscilloscopeSN"
                 placeholder=" "
                 :disabled="!isDeviceReady"
-                @input="saveFormData"
                 :class="inputClass"
             />
             <label :class="labelClass">Oscilloscope SN</label>
@@ -51,7 +49,6 @@
                 v-model="multimeterSN"
                 placeholder=" "
                 :disabled="!isDeviceReady"
-                @input="saveFormData"
                 :class="inputClass"
             />
             <label :class="labelClass">Multimeter SN</label>
@@ -74,7 +71,7 @@
                     v-model="lotNumber"
                     placeholder=" "
                     :disabled="!isDeviceReady"
-                    @input="saveFormData"
+                    
                     :class="inputClass"
                 />
                 <label :class="labelClass">Lot Number</label>
@@ -114,7 +111,7 @@
                     min="1"
                     max="100"
                     :disabled="!isDeviceReady"
-                    @input="saveFormData"
+                    
                     :class="[
                         'w-20 text-center border rounded-md h-10 px-3 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500',
                         !isDeviceReady ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed' : 'border-gray-200'
@@ -160,9 +157,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useTestingPage } from '@/composables/useTestingPage'
+import { useTestingPage } from '@/composables/useTestingPage.js'
 import { useTestingSession } from '@/composables/useTestingSession'
 import ErrorModal from '@/components/modals/ErrorModal.vue'
 
@@ -175,8 +172,7 @@ const {
     poNumber, lotNumber, serialNumber, quantity, serialRange,
     selectedProduct, selectedTestType, templateData,
     errorMessage, showErrorModal,
-    startTesting, incrementQty, decrementQty,
-    saveFormData, closeErrorModal
+    startTesting, incrementQty, decrementQty, closeErrorModal, resetFormData
 } = useTestingPage()
 
 // Device sudah dipilih lengkap?
@@ -209,12 +205,16 @@ watch(showErrorModal, (val) => {
     if (val) errorModal.value?.show()
 })
 
+onMounted(() => {
+    resetFormData()
+})
+
 function handleNumericInput(event, field) {
     event.target.value = event.target.value.replace(/[^0-9]/g, '')
     if (field === 'poNumber') poNumber.value = event.target.value
     else if (field === 'serialNumber') serialNumber.value = event.target.value
-    saveFormData()
 }
+
 
 function handleStartTesting() {
     if (!canStart.value) return

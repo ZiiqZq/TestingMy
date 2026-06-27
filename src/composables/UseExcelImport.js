@@ -240,26 +240,55 @@ export function useExcelImport() {
   // Transform 1 raw Excel row → format siap pakai di TestingTable
   // ---------------------------------------------------------------
   function mapRow(row, mapping, headerRow) {
-    const getVal = (key) => {
-      const v = row[key]
-      if (v === null || v === undefined) return ''
-      if (v instanceof Date) return v.toISOString().split('T')[0]
+    const toDateStr = (v) => {
+      if (!v) return ''
+
+      // Kasus 1: Date object — pakai komponen lokal
+      if (v instanceof Date) {
+        const yyyy = v.getFullYear()
+        const mm   = String(v.getMonth() + 1).padStart(2, '0')
+        const dd   = String(v.getDate()).padStart(2, '0')
+        return `${yyyy}-${mm}-${dd}`
+      }
+
       const s = String(v).trim()
-      // Jangan return formula
-      if (s.startsWith('=')) return ''
+
+      // Kasus 2: String ISO dengan waktu "2026-01-12T17:00:00.000Z"
+      // JANGAN substring(0,10) → hasilnya "2026-01-12" yang salah karena UTC offset
+      // Harus parse ulang → getDate() lokal → "2026-01-13"
+      if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+        const d = new Date(s)
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getFullYear()
+          const mm   = String(d.getMonth() + 1).padStart(2, '0')
+          const dd   = String(d.getDate()).padStart(2, '0')
+          return `${yyyy}-${mm}-${dd}`
+        }
+      }
+
+      // Kasus 3: String tanggal saja "2026-01-13" — sudah benar
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+
       return s
     }
 
-    // Format tanggal dari berbagai kemungkinan
-    const formatDate = (v) => {
-      if (!v) return ''
-      if (v instanceof Date) return v.toISOString().split('T')[0]
+    const getVal = (key) => {
+      const v = row[key]
+      if (v === null || v === undefined) return ''
+      if (v instanceof Date) return toDateStr(v)
       const s = String(v).trim()
       if (s.startsWith('=')) return ''
-      // Coba parse sebagai tanggal
-      const d = new Date(s)
-      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
+      // String ISO datetime — lewat toDateStr supaya timezone-safe
+      if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return toDateStr(s)
       return s
+    }
+
+    // Format tanggal — gunakan toDateStr yang sudah timezone-safe
+    const formatDate = (v) => {
+      if (!v) return ''
+      const s = String(v).trim()
+      if (s.startsWith('=')) return ''
+      return toDateStr(v)
     }
 
     // Cari key untuk setiap kolom wajib dari headerRow

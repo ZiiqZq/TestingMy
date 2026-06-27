@@ -13,9 +13,12 @@
   },
   "dependencies": {
     "convert-excel-to-json": "^1.7.0",
+    "echarts": "^6.1.0",
     "mysql2": "^3.16.1",
+    "puppeteer": "^25.1.0",
     "splitpanes": "^4.0.4",
     "vue": "^3.5.26",
+    "vue-echarts": "^8.0.1",
     "vue-resizable": "^2.1.7",
     "vue-router": "^4.6.4",
     "xlsx": "^0.18.5"

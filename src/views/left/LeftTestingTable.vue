@@ -1,6 +1,17 @@
 <!-- lefttestingtable.vue -->
 <template>
     <div class="flex flex-col gap-4 h-full ml-4 mr-2 py-4">
+        <!-- Toast Notification -->
+        <Teleport to="body">
+            <transition name="toast">
+                <div v-if="toast.show"
+                     :class="['fixed bottom-5 right-5 z-[100] px-4 py-3 rounded-xl shadow-xl text-sm font-medium text-white',
+                              toast.type === 'error' ? 'bg-red-500' : 'bg-green-600']">
+                    {{ toast.msg }}
+                </div>
+            </transition>
+        </Teleport>
+
         <!-- Column Info -->
         <div class="bg-white rounded-3xl shadow-md w-full hover:shadow-xl transition duration-200 ease-in-out p-4">
             <input type="checkbox" id="accordion-column" class="peer hidden" checked />
@@ -26,25 +37,34 @@
                             <div class="text-[#4B5563] text-xs pt-0.5">Column :</div>
                             <div class="border border-gray-300 pl-3 text-sm text-[#4B5563] rounded-lg bg-gray-100 col-span-2">{{ currentColumn.name }}</div>
                         </div>
-                        <div class="grid grid-cols-3">
+                        <!-- Tampilkan LSL/USL hanya jika validationType = lsl_usl -->
+                        <div v-if="currentColumn.validationType === 'lsl_usl'" class="grid grid-cols-3">
                             <div class="text-[#4B5563] text-xs pt-0.5">LSL :</div>
                             <div class="border border-gray-300 pl-3 text-sm text-[#4B5563] rounded-lg bg-gray-100 col-span-2">
                                 {{ currentColumn.lsl && currentColumn.lsl !== '-' && currentColumn.lsl !== 'Tidak ada' ? `${currentColumn.lsl} ${currentColumn.unit}` : '-' }}
                             </div>
                         </div>
-                        <div class="grid grid-cols-3">
+                        <div v-if="currentColumn.validationType === 'lsl_usl'" class="grid grid-cols-3">
                             <div class="text-[#4B5563] text-xs pt-0.5">USL :</div>
                             <div class="border border-gray-300 pl-3 text-sm text-[#4B5563] rounded-lg bg-gray-100 col-span-2">
                                 {{ currentColumn.usl && currentColumn.usl !== '-' && currentColumn.usl !== 'Tidak ada' ? `${currentColumn.usl} ${currentColumn.unit}` : '-' }}
                             </div>
                         </div>
+                        <!-- Tampilkan Expected Value jika text_match atau pass_fail -->
+                        <div v-if="currentColumn.validationType === 'text_match' || currentColumn.validationType === 'pass_fail'" class="grid grid-cols-3">
+                            <div class="text-[#4B5563] text-xs pt-0.5">Expected :</div>
+                            <div class="border border-gray-300 pl-3 text-sm text-[#4B5563] rounded-lg bg-gray-100 col-span-2">
+                                {{ currentColumn.expectedValue || '-' }}
+                            </div>
+                        </div>
+                        <!-- Jika pass_fail tidak memiliki expectedValue, tampilkan "-" sudah di-handle di atas -->
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Test Info -->
-        <div v-if="testInfo" class="bg-white rounded-3xl shadow-md w-full hover:shadow-xl transition duration-200 ease-in-out p-4">
+         <!-- Test Info -->
+        <div v-if="testInfo && testInfo.product" class="bg-white rounded-3xl shadow-md w-full hover:shadow-xl transition duration-200 ease-in-out p-4">
             <input type="checkbox" id="accordion-testinfo" class="peer hidden" checked />
             <label for="accordion-testinfo" class="group flex justify-between cursor-pointer select-none">
                 <div class="flex gap-2">
@@ -66,7 +86,7 @@
                     <div class="mt-5 space-y-2 pl-1">
                         <div class="grid grid-cols-3 gap-1">
                             <div class="text-[#4B5563] text-xs pt-0.5">Device :</div>
-                            <div class="border border-gray-300 pl-3 text-sm text-[#4B5563] rounded-lg bg-gray-100 col-span-2">{{ testInfo.product?.name || 'Belum dipilih' }}</div>
+                            <div class="border border-gray-300 pl-3 text-sm text-[#4B5563] rounded-lg bg-gray-100 col-span-2">{{ testInfo.product?.series ? `${testInfo.product.series} ${testInfo.product.series_number ? `(${testInfo.product.series_number})` : ''}` : 'Belum dipilih' }}</div>
                         </div>
                         <div class="grid grid-cols-3 gap-1">
                             <div class="text-[#4B5563] text-xs pt-0.5">Test Type :</div>
@@ -136,7 +156,6 @@
 </template>
 
 <script setup>
-
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useTestingSession } from '@/composables/useTestingSession'
 import { useRouter } from 'vue-router'
@@ -144,18 +163,24 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const { getSession } = useTestingSession()
 
-// SET DEFAULT VALUES
 const testInfo = ref({})
 const currentColumn = ref({
     name: 'Pilih kolom di tabel',
     lsl: '-',
     usl: '-',
-    unit: ''
+    unit: '',
+    expectedValue: '',
+    validationType: 'lsl_usl'
 })
-
 const testParameters = ref([])
 
-// Fungsi untuk membaca currentColumn dari localStorage
+// Toast state
+const toast = ref({ show: false, type: 'success', msg: '' })
+const showToast = (type, msg) => {
+    toast.value = { show: true, type, msg }
+    setTimeout(() => toast.value.show = false, 3500)
+}
+
 const readCurrentColumn = () => {
     try {
         const saved = localStorage.getItem('currentColumn')
@@ -166,16 +191,18 @@ const readCurrentColumn = () => {
                     name: parsed.name || 'Kolom',
                     lsl: parsed.lsl || '-',
                     usl: parsed.usl || '-',
-                    unit: parsed.unit || ''
+                    unit: parsed.unit || '',
+                    expectedValue: parsed.expectedValue || '',
+                    validationType: parsed.validationType || 'lsl_usl'
                 }
             }
         }
     } catch (error) {
         console.log('Error reading currentColumn:', error)
+        showToast('error', 'Gagal membaca informasi kolom')
     }
 }
 
-// Event listener untuk storage changes
 const storageListener = (event) => {
     if (event.key === 'currentColumn') {
         readCurrentColumn()
@@ -184,27 +211,29 @@ const storageListener = (event) => {
 
 onMounted(() => {
     const session = getSession()
-    
     if (!session) {
         console.log('Tidak ada data session, kembali ke Testing')
         router.push({ name: 'Testing' })
         return
     }
-    
     testInfo.value = session
-
     if (session.parameters && Array.isArray(session.parameters)) {
         testParameters.value = session.parameters
     }
-    
-    // Baca currentColumn dari localStorage
     readCurrentColumn()
-
-    // Polling untuk update (fallback)
     const intervalId = setInterval(readCurrentColumn, 1000)
-    
-    console.log('LeftTestingTable mounted with session:', session)
-    
-    
+    window.addEventListener('storage', storageListener)
+    onUnmounted(() => {
+        clearInterval(intervalId)
+        window.removeEventListener('storage', storageListener)
+    })
 })
 </script>
+
+<style scoped>
+/* Toast transition */
+.toast-enter-active, .toast-leave-active { transition: all 0.25s; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(8px); }
+
+/* ... style lainnya tetap sama ... */
+</style>

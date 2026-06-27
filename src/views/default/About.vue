@@ -14,7 +14,7 @@
         </router-link>
         
         <h1 class="text-5xl md:text-6xl font-bold text-white mb-6">
-          🚀 Tentang Aplikasi Ini
+          Tentang Aplikasi Ini
         </h1>
         <p class="text-xl text-gray-300 max-w-3xl">
           Sebuah aplikasi desktop modern yang dibangun dengan teknologi terbaru

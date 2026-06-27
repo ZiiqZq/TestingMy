@@ -40,13 +40,33 @@
       <ImportExcel />
     </div>
 
+    <!-- Global Toast Notification -->
+    <Teleport to="body">
+      <transition name="toast">
+        <div v-if="toastShow"
+             :class="[
+               'fixed bottom-5 right-5 z-[100] px-4 py-3 rounded-xl shadow-xl text-sm font-medium text-white',
+               toastType === 'error' ? 'bg-red-500' : 'bg-green-600'
+             ]">
+          {{ toastMessage }}
+        </div>
+      </transition>
+    </Teleport>
+
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useTestingPage } from '@/composables/useTestingPage.js'
 import ManualTestForm from '@/views/default/ManualTest.vue'
 import ImportExcel from '@/views/default/ImportExcel.vue'
 
 const activeTab = ref('manual')
+const { toastShow, toastMessage, toastType } = useTestingPage()
 </script>
+
+<style scoped>
+.toast-enter-active, .toast-leave-active { transition: all 0.25s; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(8px); }
+</style>

@@ -1,3 +1,4 @@
+<!-- mainlayout.vue -->
 <template>
   <div class="app-layout">
     <!-- Sidebar -->
@@ -10,16 +11,16 @@
       <main class="flex main-content overflow-hidden bg-[#faf9f5] border border-gray-300 rounded-tl-lg">
         
         <!-- panel kiri -->
-        <div class="left-panel py-4 flex flex-col h-full" :style="{ width: leftPanelWidth + 'px' }">
+        <div class="left-panel  flex flex-col h-full" :style="{ width: leftPanelWidth + 'px' }">
           <!-- Title -->
-          <div v-if="route.meta.showPageTitle === true" class=" px-7 flex-shrink-0">
+          <div v-if="route.meta.showPageTitle === true" class=" px-7 pt-4 flex-shrink-0">
             <p class="text-xl text-[#444D59] font-bold mb-3 ">
               {{ pageTitle }}
             </p>
           </div>
           
-          <div class="flex-1 scroll-container py-4">
-            <RouterView 
+          <div class="flex-1 scroll-container left-scroll h-full  left-panel">
+            <RouterView
               name="LeftSidebar"
               ref="leftPanelRef"
             />
@@ -27,12 +28,12 @@
         </div>
         
         <!-- panel kanan -->
-        <div class="right-panel-container  mx-1 mt-1 mb-4 flex-1 relative">
+        <div class="right-panel-container mr-2 ml-1 mt-1 mb-4 flex-1 relative">
           <!-- Resize Handle -->
           <div class="resize-handle" @mousedown="startResize"></div>
           
           <Transition name="slide-fade">
-            <div 
+            <div
               class="right-panel backdrop-blur-xs border border-gray-300/50 rounded-3xl bg-[#FDFDFD] shadow-md overflow-hidden h-full" 
               ref="rightPanel"
               :key="route.path"

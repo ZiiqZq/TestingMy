@@ -1,7 +1,17 @@
-// src/composables/useTestingPage.js
+// composables/useTestingPage.js
 import { ref, computed, onMounted } from 'vue'
 
-// BUAT STATE GLOBAL DI LUAR FUNGSI
+// Ambil user yang sedang login dari localStorage (global)
+const getCurrentUser = () => {
+    try {
+        const userStr = localStorage.getItem('user')
+        return userStr ? JSON.parse(userStr) : null
+    } catch {
+        return null
+    }
+}
+
+// State global
 const globalState = {
     allProducts: ref([]),
     productSeries: ref([]),
@@ -10,7 +20,7 @@ const globalState = {
     testParameters: ref([]),
     templateData: ref(null),
     testingInProgress: ref(false),
-    operatorName: ref(''),
+    operatorName: ref(getCurrentUser()?.username || ''),
     testDate: ref(new Date().toISOString().split('T')[0]),
     multimeterSN: ref(''),
     oscilloscopeSN: ref(''),
@@ -19,11 +29,13 @@ const globalState = {
     serialNumber: ref(''),
     quantity: ref(1),
     errorMessage: ref(''),
-    showErrorModal: ref(false)
+    showErrorModal: ref(false),
+    toastMessage: ref(''),
+    toastShow: ref(false),
+    toastType: ref('error')
 }
 
 export function useTestingPage() {
-    // Computed
     const serialRange = computed(() => {
         if (!globalState.serialNumber.value) return ''
         const start = parseInt(globalState.serialNumber.value)
@@ -32,21 +44,32 @@ export function useTestingPage() {
         return `${start} - ${end}`
     })
 
-    // Load products dari database
     async function loadProducts() {
         try {
             const result = await window.electron.db.getProducts()
             if (result.success) {
                 globalState.allProducts.value = result.data
             } else {
-                showError(`Failed to load products: ${result.error}`)
+                showError(`Gagal memuat produk: ${result.error}`)
             }
         } catch (error) {
-            showError(`Failed to load products: ${error.message}`)
+            showError(`Gagal memuat produk: ${error.message}`)
         }
     }
 
-    // Product selection
+    function showToast(message, type = 'error') {
+        globalState.toastMessage.value = message
+        globalState.toastType.value = type
+        globalState.toastShow.value = true
+        setTimeout(() => {
+            globalState.toastShow.value = false
+        }, 3500)
+    }
+
+    function closeToast() {
+        globalState.toastShow.value = false
+    }
+
     function onProductSelect(productName) {
         globalState.productSeries.value = globalState.allProducts.value.filter(p => p.product_name === productName)
         globalState.selectedProduct.value = null
@@ -56,7 +79,6 @@ export function useTestingPage() {
         return globalState.productSeries.value
     }
 
-    // Series selection
     async function onSeriesSelect(seriesId) {
         const series = globalState.productSeries.value.find(p => p.id === seriesId)
         if (!series) return []
@@ -75,16 +97,14 @@ export function useTestingPage() {
             }
             return []
         } catch (error) {
-            throw new Error(`Failed to load test types: ${error.message}`)
+            throw new Error(`Gagal memuat tipe test: ${error.message}`)
         }
     }
 
-    // Test type selection
     async function selectTestType(testType) {
         globalState.selectedTestType.value = testType
 
         try {
-            // Load test parameters
             const paramsResult = await window.electron.db.getTestParameters({
                 productId: globalState.selectedProduct.value.id,
                 testTypeId: testType.id
@@ -93,32 +113,27 @@ export function useTestingPage() {
                 globalState.testParameters.value = paramsResult.data
             }
 
-            // Load template - VALIDASI JIKA TIDAK ADA
             const templateResult = await window.electron.db.getTemplatesByProduct(globalState.selectedProduct.value.id)
             if (templateResult.success) {
                 const template = templateResult.data.find(t => t.test_type_id === testType.id)
-
                 if (!template) {
                     const errorMsg = `Tidak ada template untuk test type "${testType.name}".\n\nHarap buat template terlebih dahulu di menu Manage.`
                     showError(errorMsg)
                     return
                 }
-
                 globalState.templateData.value = template
             } else {
                 showError('Gagal memuat template dari database')
                 return
             }
         } catch (error) {
-            showError(`Failed to load test setup: ${error.message}`)
+            showError(`Gagal memuat setup test: ${error.message}`)
         }
     }
 
-    // Validation untuk start testing
     function validateStartTesting() {
         const errors = []
-
-        if (!globalState.operatorName.value) errors.push('Nama operator harus diisi')
+        // Operator name sudah diisi otomatis, tidak perlu validasi
         if (!globalState.testDate.value) errors.push('Tanggal test harus diisi')
         if (!globalState.poNumber.value) errors.push('PO Number harus diisi')
         if (!globalState.serialNumber.value) errors.push('Serial Number harus diisi')
@@ -126,18 +141,13 @@ export function useTestingPage() {
         if (!globalState.selectedProduct.value) errors.push('Device harus dipilih')
         if (!globalState.selectedTestType.value) errors.push('Test type harus dipilih')
         if (!globalState.templateData.value) errors.push('Template tidak tersedia untuk test ini')
-
         return errors
     }
 
-    // Start testing
     function startTesting() {
         const errors = validateStartTesting()
         if (errors.length > 0) {
-            return {
-                success: false,
-                message: errors.join(', ')
-            }
+            return { success: false, message: errors.join(', ') }
         }
 
         const testInfo = {
@@ -154,17 +164,12 @@ export function useTestingPage() {
             template: globalState.templateData.value,
             parameters: globalState.testParameters.value
         }
-
         globalState.testingInProgress.value = true
-        return {
-            success: true,
-            testInfo
-        }
+        return { success: true, testInfo }
     }
 
-    // Clear form
     function clearForm() {
-        globalState.operatorName.value = ''
+        // Jangan reset operatorName, karena harus tetap dari user
         globalState.testDate.value = new Date().toISOString().split('T')[0]
         globalState.multimeterSN.value = ''
         globalState.oscilloscopeSN.value = ''
@@ -178,7 +183,6 @@ export function useTestingPage() {
         globalState.testParameters.value = []
     }
 
-    // Quantity controls
     function incrementQty() {
         if (globalState.quantity.value < 100) globalState.quantity.value++
     }
@@ -187,52 +191,69 @@ export function useTestingPage() {
         if (globalState.quantity.value > 1) globalState.quantity.value--
     }
 
-    // Numeric validation
-    function validateNumeric(value, field) {
+    function validateNumeric(value) {
         return value.replace(/[^0-9]/g, '')
     }
 
-    // Simpan data form ke localStorage
-    function saveFormData() {
-        localStorage.setItem('operatorName', globalState.operatorName.value)
-        localStorage.setItem('testDate', globalState.testDate.value)
-        localStorage.setItem('multimeterSN', globalState.multimeterSN.value)
-        localStorage.setItem('oscilloscopeSN', globalState.oscilloscopeSN.value)
-        localStorage.setItem('poNumber', globalState.poNumber.value)
-        localStorage.setItem('lotNumber', globalState.lotNumber.value)
-        localStorage.setItem('serialNumber', globalState.serialNumber.value)
-        localStorage.setItem('quantity', globalState.quantity.value.toString())
+    // // Simpan data form (kecuali operatorName)
+    // function saveFormData() {
+    //     localStorage.setItem('testDate', globalState.testDate.value)
+    //     localStorage.setItem('multimeterSN', globalState.multimeterSN.value)
+    //     localStorage.setItem('oscilloscopeSN', globalState.oscilloscopeSN.value)
+    //     localStorage.setItem('poNumber', globalState.poNumber.value)
+    //     localStorage.setItem('lotNumber', globalState.lotNumber.value)
+    //     localStorage.setItem('serialNumber', globalState.serialNumber.value)
+    //     localStorage.setItem('quantity', globalState.quantity.value.toString())
+    // }
+
+    // // Load data form (kecuali operatorName)
+    // function loadFormData() {
+    //     globalState.testDate.value = localStorage.getItem('testDate') || new Date().toISOString().split('T')[0]
+    //     globalState.multimeterSN.value = localStorage.getItem('multimeterSN') || ''
+    //     globalState.oscilloscopeSN.value = localStorage.getItem('oscilloscopeSN') || ''
+    //     globalState.poNumber.value = localStorage.getItem('poNumber') || ''
+    //     globalState.lotNumber.value = localStorage.getItem('lotNumber') || ''
+    //     globalState.serialNumber.value = localStorage.getItem('serialNumber') || ''
+    //     globalState.quantity.value = parseInt(localStorage.getItem('quantity')) || 1
+    // }
+
+    function resetFormData() {
+        // Jangan reset operatorName (tetap dari user) dan testDate (set ke hari ini)
+        globalState.multimeterSN.value = ''
+        globalState.oscilloscopeSN.value = ''
+        globalState.poNumber.value = ''
+        globalState.lotNumber.value = ''
+        globalState.serialNumber.value = ''
+        globalState.quantity.value = 1
+        // Reset testDate ke hari ini
+        globalState.testDate.value = new Date().toISOString().split('T')[0]
+        // Opsional: reset juga selectedProduct dan selectedTestType jika ingin lebih bersih
+        // globalState.selectedProduct.value = null
+        // globalState.selectedTestType.value = null
+        // globalState.templateData.value = null
     }
 
-    // Load data form dari localStorage
-    function loadFormData() {
-        globalState.operatorName.value = localStorage.getItem('operatorName') || ''
-        globalState.testDate.value = localStorage.getItem('testDate') || new Date().toISOString().split('T')[0]
-        globalState.multimeterSN.value = localStorage.getItem('multimeterSN') || ''
-        globalState.oscilloscopeSN.value = localStorage.getItem('oscilloscopeSN') || ''
-        globalState.poNumber.value = localStorage.getItem('poNumber') || ''
-        globalState.lotNumber.value = localStorage.getItem('lotNumber') || ''
-        globalState.serialNumber.value = localStorage.getItem('serialNumber') || ''
-        globalState.quantity.value = parseInt(localStorage.getItem('quantity')) || 1
-    }
-
-    // Fungsi untuk menampilkan error modal
     function showError(message) {
         globalState.errorMessage.value = message
         globalState.showErrorModal.value = true
     }
 
-    // Fungsi untuk menutup error modal
     function closeErrorModal() {
         globalState.showErrorModal.value = false
     }
 
+    // Sinkronisasi operator name jika user berubah (misal setelah login)
+    function syncOperatorFromUser() {
+        const user = getCurrentUser()
+        globalState.operatorName.value = user ? user.username : ''
+    }
     onMounted(() => {
         loadProducts()
+        resetFormData()
+        syncOperatorFromUser()
     })
 
     return {
-        // Expose semua state dari globalState
         allProducts: globalState.allProducts,
         productSeries: globalState.productSeries,
         selectedProduct: globalState.selectedProduct,
@@ -260,9 +281,16 @@ export function useTestingPage() {
         decrementQty,
         validateNumeric,
         clearForm,
-        saveFormData,
-        loadFormData,
+        // saveFormData,
+        // loadFormData,
+        resetFormData,
         showError,
-        closeErrorModal
+        closeErrorModal,
+        toastMessage: globalState.toastMessage,
+        toastShow: globalState.toastShow,
+        toastType: globalState.toastType,
+        showToast,
+        closeToast,
+        syncOperatorFromUser
     }
 }
